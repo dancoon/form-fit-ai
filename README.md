@@ -1,8 +1,8 @@
-# FORM FIT AI 🏋️‍♂️
+# FORM FIT AI
 
 A premium fitness tracking application built with Expo, Bun, and Biome.
 
-## 🚀 Getting Started
+## Getting Started
 
 1. **Install dependencies**
    ```bash
@@ -14,7 +14,7 @@ A premium fitness tracking application built with Expo, Bun, and Biome.
    bun start
    ```
 
-## 📂 Project Structure
+## Project Structure
 
 - `src/app/`: File-based routing and screens.
 - `src/components/`: Reusable UI components.
@@ -22,13 +22,13 @@ A premium fitness tracking application built with Expo, Bun, and Biome.
 - `src/constants/`: App constants and theme colors.
 - `src/assets/`: Static assets (images, fonts).
 
-## 🛠️ Tooling
+## Tooling
 
 - **Package Manager**: [Bun](https://bun.sh/)
 - **Linting & Formatting**: [Biome](https://biomejs.dev/)
 - **Framework**: [Expo](https://expo.dev/)
 
-## 🧹 Linting
+## Linting
 
 ```bash
 bun lint    # Check for issues
