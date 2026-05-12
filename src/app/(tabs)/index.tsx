@@ -9,6 +9,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { MockCameraFeed } from "@/components/MockCameraFeed";
 import { WebGLOverlay } from "@/components/WebGLOverlay";
+import { useAppSettings } from "@/context/AppSettingsContext";
 import { useMockMLPipeline } from "@/hooks/useMockMLPipeline";
 
 const SLIDER_WIDTH = 200;
@@ -23,9 +24,11 @@ export default function HomeScreen() {
     useMockMLPipeline();
   const hasTriggeredHaptic = useRef(false);
 
+  const { vocalFeedback } = useAppSettings();
+
   // Vocal Feedback Logic
   useEffect(() => {
-    if (feedback) {
+    if (vocalFeedback && feedback) {
       // Stop any current speech before starting new one to avoid overlapping
       Speech.stop();
       Speech.speak(feedback, {
@@ -33,7 +36,7 @@ export default function HomeScreen() {
         pitch: 1.0,
       });
     }
-  }, [feedback]);
+  }, [feedback, vocalFeedback]);
 
   const sliderPos = useSharedValue(severity * SLIDER_WIDTH);
   const startPos = useRef(0);
