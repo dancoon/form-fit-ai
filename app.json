@@ -4,6 +4,7 @@
     "slug": "form-fit-ai",
     "version": "1.0.0",
     "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
     "icon": "./src/assets/images/icon.png",
     "scheme": "formfitai",
     "ios": {
