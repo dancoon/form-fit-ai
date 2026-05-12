@@ -52,8 +52,11 @@ const FRAGMENT_SHADER = `#version 300 es
       minDist = min(minDist, d);
     }
 
+    // Scale alpha from 0.4 (semi-transparent) to 0.85 (highly opaque)
+    float dynamicAlpha = mix(0.4, 0.85, correctedS);
+
     if (minDist < radius) {
-      fragColor = vec4(mixedColor, 1.0);
+      fragColor = vec4(mixedColor, dynamicAlpha);
     } else {
       discard;
     }
