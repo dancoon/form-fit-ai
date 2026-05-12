@@ -1,4 +1,5 @@
-import { useRef } from "react";
+import * as Haptics from "expo-haptics";
+import { useEffect, useRef } from "react";
 import { Text, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
@@ -14,17 +15,27 @@ const SLIDER_WIDTH = 200;
 /**
  * HomeScreen (Main Workout Screen)
  *
- * This screen integrates the Phase 1 Mock Pipeline and Phase 2 Shader Engine.
- * It provides a visual stack of the Camera Feed and the WebGL indicator overlay,
- * with a custom glassmorphic slider to control error severity in real-time.
- *
- * Enforces NativeWind (Tailwind CSS) for all layout and styling.
+ * Implements architectural requirement Fix 5: Haptic Feedback Integration.
  */
 export default function HomeScreen() {
   const { uLandmarks, uSeverity, severity, setSeverity } = useMockMLPipeline();
+  const hasTriggeredHaptic = useRef(false);
 
   const sliderPos = useSharedValue(severity * SLIDER_WIDTH);
   const startPos = useRef(0);
+
+  // Fix 5: Haptic Feedback Logic
+  useEffect(() => {
+    if (severity > 0.8) {
+      if (!hasTriggeredHaptic.current) {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+        hasTriggeredHaptic.current = true;
+      }
+    } else {
+      // Reset ref when dropping below threshold to allow re-triggering
+      hasTriggeredHaptic.current = false;
+    }
+  }, [severity]);
 
   const panGesture = Gesture.Pan()
     .runOnJS(true)
@@ -40,8 +51,6 @@ export default function HomeScreen() {
       setSeverity(nextPos / SLIDER_WIDTH);
     });
 
-  // Reanimated style objects are the only exception where the 'style' prop is utilized,
-  // as it is required for performant 60fps UI thread animations.
   const knobStyle = useAnimatedStyle(() => ({
     transform: [{ translateX: sliderPos.value }],
   }));
