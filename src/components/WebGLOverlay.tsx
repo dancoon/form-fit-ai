@@ -1,7 +1,7 @@
 import { type ExpoWebGLRenderingContext, GLView } from "expo-gl";
 import type React from "react";
 import { useCallback, useRef } from "react";
-import { StyleSheet, useWindowDimensions } from "react-native";
+import { useWindowDimensions } from "react-native";
 import { useRenderLoop } from "@/hooks/useRenderLoop";
 
 interface WebGLOverlayProps {
@@ -154,9 +154,6 @@ export const WebGLOverlay: React.FC<WebGLOverlayProps> = ({
   useRenderLoop(renderFrame);
 
   return (
-    <GLView
-      style={[StyleSheet.absoluteFill, { width, height }]}
-      onContextCreate={onContextCreate}
-    />
+    <GLView className="absolute inset-0" onContextCreate={onContextCreate} />
   );
 };
