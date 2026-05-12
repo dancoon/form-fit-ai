@@ -1,13 +1,14 @@
+import { CameraView, useCameraPermissions } from "expo-camera";
 import * as Haptics from "expo-haptics";
+import { useRouter } from "expo-router";
 import * as Speech from "expo-speech";
 import { useEffect, useRef } from "react";
-import { Text, View } from "react-native";
+import { Text, TouchableOpacity, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
 } from "react-native-reanimated";
-import { MockCameraFeed } from "@/components/MockCameraFeed";
 import { WebGLOverlay } from "@/components/WebGLOverlay";
 import { useAppSettings } from "@/context/AppSettingsContext";
 import { useMockMLPipeline } from "@/hooks/useMockMLPipeline";
@@ -17,9 +18,11 @@ const SLIDER_WIDTH = 200;
 /**
  * HomeScreen (Main Workout Screen)
  *
- * Implements architectural requirement Fix 5: Haptic Feedback Integration.
+ * Implements architectural requirement Phase 1: Real Camera Integration.
  */
 export default function HomeScreen() {
+  const router = useRouter();
+  const [permission, requestPermission] = useCameraPermissions();
   const { uLandmarks, uSeverity, severity, setSeverity, feedback } =
     useMockMLPipeline();
   const hasTriggeredHaptic = useRef(false);
@@ -29,7 +32,6 @@ export default function HomeScreen() {
   // Vocal Feedback Logic
   useEffect(() => {
     if (vocalFeedback && feedback) {
-      // Stop any current speech before starting new one to avoid overlapping
       Speech.stop();
       Speech.speak(feedback, {
         rate: 1.0,
@@ -41,7 +43,7 @@ export default function HomeScreen() {
   const sliderPos = useSharedValue(severity * SLIDER_WIDTH);
   const startPos = useRef(0);
 
-  // Fix 5: Haptic Feedback Logic
+  // Haptic Feedback Logic
   useEffect(() => {
     if (severity > 0.8) {
       if (!hasTriggeredHaptic.current) {
@@ -49,7 +51,6 @@ export default function HomeScreen() {
         hasTriggeredHaptic.current = true;
       }
     } else {
-      // Reset ref when dropping below threshold to allow re-triggering
       hasTriggeredHaptic.current = false;
     }
   }, [severity]);
@@ -76,15 +77,55 @@ export default function HomeScreen() {
     width: sliderPos.value,
   }));
 
+  // Permission UI
+  if (!permission) {
+    return <View className="flex-1 bg-black" />;
+  }
+
+  if (!permission.granted) {
+    return (
+      <View className="flex-1 items-center justify-center bg-black p-5">
+        <Text className="mb-5 text-center text-lg text-white">
+          We need your permission to show the camera
+        </Text>
+        <TouchableOpacity
+          onPress={requestPermission}
+          className="rounded-full bg-white px-8 py-3"
+        >
+          <Text className="font-bold text-black">Grant Permission</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
   return (
     <View className="flex-1 bg-black pb-safe">
       {/* PHASE 3: STACKED ARCHITECTURE */}
       <View className="m-[10px] flex-1 overflow-hidden rounded-[24px]">
-        {/* Layer 0: Mock Camera Feed */}
-        <MockCameraFeed />
+        {/* Layer 0: Real Camera Feed */}
+        <CameraView
+          style={{
+            flex: 1,
+            position: "absolute",
+            width: "100%",
+            height: "100%",
+          }}
+          facing="front"
+        />
 
         {/* Layer 1: WebGL Shader Overlay */}
         <WebGLOverlay uLandmarks={uLandmarks} uSeverity={uSeverity} />
+
+        {/* Phase 3: Play Demo Button */}
+        <TouchableOpacity
+          onPress={() => router.push("/modal")}
+          className="absolute top-5 right-5 overflow-hidden rounded-2xl border border-white/20 bg-white/10 px-5 py-3"
+          style={{ backdropFilter: "blur(10px)" }} // Note: NativeWind/RN doesn't support backdropFilter directly like CSS, but we can use glassmorphic styling
+        >
+          <Text className="font-bold text-white uppercase tracking-wide">
+            Play Demo
+          </Text>
+        </TouchableOpacity>
       </View>
 
       {/* PHASE 3: INTERACTIVE CONTROLS */}
@@ -94,7 +135,6 @@ export default function HomeScreen() {
             ERROR SEVERITY: {(severity * 100).toFixed(0)}%
           </Text>
 
-          {/* Real-time Vocal Guidance Display */}
           <View className="h-[40px] justify-center">
             {feedback ? (
               <Text className="text-center font-semibold text-yellow-400">
