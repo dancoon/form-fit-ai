@@ -27,6 +27,7 @@ A premium fitness tracking application built with Expo, Bun, and Biome.
 - **Package Manager**: [Bun](https://bun.sh/)
 - **Linting & Formatting**: [Biome](https://biomejs.dev/)
 - **Framework**: [Expo](https://expo.dev/)
+- **Styling**: [NativeWind](https://www.nativewind.dev/) (Tailwind CSS for React Native)
 
 ## Linting
 
