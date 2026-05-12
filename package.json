@@ -1,14 +1,24 @@
 {
-  "name": "formfit-ai",
+  "name": "form-fit-ai",
   "main": "expo-router/entry",
   "version": "1.0.0",
   "scripts": {
     "start": "expo start",
-    "reset-project": "node ./scripts/reset-project.js",
-    "android": "expo start --android",
-    "ios": "expo start --ios",
+    "dev": "expo start --dev-client",
+    "android": "expo prebuild --clean && expo run:android",
+    "ios": "expo run:ios",
     "web": "expo start --web",
-    "lint": "expo lint"
+    "build": "expo prebuild --clean && ./android/gradlew -p android assembleRelease",
+    "install-apk": "adb install ./android/app/build/outputs/apk/release/app-release.apk",
+    "build:install-apk": "bun run build && bun run install-apk",
+    "doctor": "expo-doctor --verbose",
+    "update-packages": "expo install --check",
+    "reinstall-packages": "rm -rf node_modules bun.lock && bun i",
+    "lint": "biome check",
+    "format": "biome format",
+    "check": "biome check",
+    "clean": "biome check --write",
+    "reset-project": "node ./scripts/reset-project.js"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",
@@ -40,8 +50,7 @@
   "devDependencies": {
     "@types/react": "~19.1.0",
     "typescript": "~5.9.2",
-    "eslint": "^9.25.0",
-    "eslint-config-expo": "~10.0.0"
+    "@biomejs/biome": "1.9.4"
   },
   "private": true
 }
