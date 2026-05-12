@@ -6,7 +6,6 @@
     "orientation": "portrait",
     "icon": "./src/assets/images/icon.png",
     "scheme": "formfitai",
-    "userInterfaceStyle": "dark",
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.anonymous.formfitai"
@@ -33,10 +32,7 @@
           "image": "./src/assets/images/splash-icon.png",
           "imageWidth": 200,
           "resizeMode": "contain",
-          "backgroundColor": "#ffffff",
-          "dark": {
-            "backgroundColor": "#000000"
-          }
+          "backgroundColor": "#ffffff"
         }
       ]
     ],
