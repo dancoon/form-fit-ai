@@ -36,6 +36,7 @@
       "devDependencies": {
         "@biomejs/biome": "^2.4.15",
         "@types/react": "~19.1.0",
+        "expo-doctor": "^1.18.21",
         "lefthook": "^2.1.6",
         "postcss": "8.4.49",
         "typescript": "~5.9.2",
@@ -672,6 +673,8 @@
     "expo-asset": ["expo-asset@12.0.13", "", { "dependencies": { "@expo/image-utils": "^0.8.8", "expo-constants": "~18.0.13" }, "peerDependencies": { "expo": "*", "react": "*", "react-native": "*" } }, "sha512-x/p7WvQUnkn6K43b9eL6SPeq5Vnf1E8BDe9bDrWrvMqzyUvJnUFvl+ctg3034s/+UHe7Ne2pAmc0+yzbl8CrDQ=="],
 
     "expo-constants": ["expo-constants@18.0.13", "", { "dependencies": { "@expo/config": "~12.0.13", "@expo/env": "~2.0.8" }, "peerDependencies": { "expo": "*", "react-native": "*" } }, "sha512-FnZn12E1dRYKDHlAdIyNFhBurKTS3F9CrfrBDJI5m3D7U17KBHMQ6JEfYlSj7LG7t+Ulr+IKaj58L1k5gBwTcQ=="],
+
+    "expo-doctor": ["expo-doctor@1.18.21", "", { "bin": { "expo-doctor": "build/index.js" } }, "sha512-PYyQNnIqLKdoc+K9VeB9VZjBkjFh22MCd3EZ6LTYRtDhBwVEErJa3ejzUoySethHD0TgnrFS+L6xByITVgLgoQ=="],
 
     "expo-file-system": ["expo-file-system@19.0.22", "", { "peerDependencies": { "expo": "*", "react-native": "*" } }, "sha512-l9pgahSc7sJD0bP9vBNeXvZjy8QKDpVHVxWmei/ESQOrzmoj5BidziqLVsyZdxsi+PfdbTtttLTAmddH/JafYA=="],
 
