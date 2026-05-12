@@ -118,7 +118,7 @@ export default function HomeScreen() {
 
         {/* Phase 3: Play Demo Button */}
         <TouchableOpacity
-          onPress={() => router.push("/modal")}
+          onPress={() => router.push("/demo")}
           className="absolute top-5 right-5 overflow-hidden rounded-2xl border border-white/20 bg-white/10 px-5 py-3"
           style={{ backdropFilter: "blur(10px)" }} // Note: NativeWind/RN doesn't support backdropFilter directly like CSS, but we can use glassmorphic styling
         >

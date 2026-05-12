@@ -22,9 +22,8 @@ export default function SettingsScreen() {
       toggleValue: vocalFeedback,
       onToggle: toggleVocalFeedback,
     },
-    { title: "Account", icon: "house.fill", value: "karume@example.com" },
     { title: "Camera Permissions", icon: "paperplane.fill", value: "Granted" },
-    { title: "App Version", icon: "chevron.right", value: "1.0.0 (Beta)" },
+    { title: "App Version", icon: "chevron.right", value: "1.0.0" },
   ];
 
   return (

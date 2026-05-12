@@ -1,3 +1,4 @@
+import { useRouter } from "expo-router";
 import { ScrollView, Text, TouchableOpacity, View } from "react-native";
 
 const EXERCISES = [
@@ -14,6 +15,8 @@ const EXERCISES = [
 ];
 
 export default function ExercisesScreen() {
+  const router = useRouter();
+
   return (
     <ScrollView className="flex-1 bg-black p-5 pt-safe">
       <Text className="mb-8 font-bold text-3xl text-white">Exercises</Text>
@@ -27,7 +30,7 @@ export default function ExercisesScreen() {
               : "border-white/10 bg-white/5 opacity-40"
           }`}
         >
-          <View>
+          <View className="flex-1">
             <Text
               className={`font-bold text-lg ${
                 item.active ? "text-white" : "text-white/60"
@@ -42,17 +45,35 @@ export default function ExercisesScreen() {
             )}
           </View>
 
-          {item.active ? (
-            <TouchableOpacity className="rounded-full bg-white px-4 py-2">
-              <Text className="font-bold text-black text-sm">SELECT</Text>
-            </TouchableOpacity>
-          ) : (
-            <View className="rounded-full border border-white/20 px-3 py-1">
-              <Text className="font-bold text-[10px] text-white/30 uppercase tracking-widest">
-                Coming Soon
-              </Text>
-            </View>
-          )}
+          <View className="flex-row items-center gap-2">
+            {item.active ? (
+              <>
+                <TouchableOpacity
+                  onPress={() => router.push("/demo")}
+                  className="rounded-full border border-white/20 px-4 py-2"
+                >
+                  <Text className="font-bold text-sm text-white uppercase">
+                    Demo
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  onPress={() => router.push("/")}
+                  className="rounded-full bg-white px-4 py-2"
+                >
+                  <Text className="font-bold text-black text-sm uppercase">
+                    Start
+                  </Text>
+                </TouchableOpacity>
+              </>
+            ) : (
+              <View className="rounded-full border border-white/20 px-3 py-1">
+                <Text className="font-bold text-[10px] text-white/30 uppercase tracking-widest">
+                  Coming Soon
+                </Text>
+              </View>
+            )}
+          </View>
         </View>
       ))}
     </ScrollView>
