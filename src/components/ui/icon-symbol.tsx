@@ -25,6 +25,8 @@ const MAPPING = {
  * This ensures a consistent look across platforms, and optimal resource usage.
  * Icon `name`s are based on SF Symbols and require manual mapping to Material Icons.
  */
+import { cssInterop } from "nativewind";
+
 export function IconSymbol({
   name,
   size = 24,
@@ -36,6 +38,18 @@ export function IconSymbol({
   color: string | OpaqueColorValue;
   style?: StyleProp<TextStyle>;
   weight?: SymbolWeight;
+  className?: string;
 }) {
-  return <MaterialIcons color={color} size={size} name={MAPPING[name]} style={style} />;
+  return (
+    <MaterialIcons
+      color={color}
+      size={size}
+      name={MAPPING[name]}
+      style={style}
+    />
+  );
 }
+
+cssInterop(IconSymbol, {
+  className: "style",
+});
