@@ -1,4 +1,5 @@
 import * as Haptics from "expo-haptics";
+import * as Speech from "expo-speech";
 import { useEffect, useRef } from "react";
 import { Text, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
@@ -18,8 +19,21 @@ const SLIDER_WIDTH = 200;
  * Implements architectural requirement Fix 5: Haptic Feedback Integration.
  */
 export default function HomeScreen() {
-  const { uLandmarks, uSeverity, severity, setSeverity } = useMockMLPipeline();
+  const { uLandmarks, uSeverity, severity, setSeverity, feedback } =
+    useMockMLPipeline();
   const hasTriggeredHaptic = useRef(false);
+
+  // Vocal Feedback Logic
+  useEffect(() => {
+    if (feedback) {
+      // Stop any current speech before starting new one to avoid overlapping
+      Speech.stop();
+      Speech.speak(feedback, {
+        rate: 1.0,
+        pitch: 1.0,
+      });
+    }
+  }, [feedback]);
 
   const sliderPos = useSharedValue(severity * SLIDER_WIDTH);
   const startPos = useRef(0);
@@ -73,9 +87,18 @@ export default function HomeScreen() {
       {/* PHASE 3: INTERACTIVE CONTROLS */}
       <View className="items-center p-5 pt-safe">
         <View className="w-full items-center rounded-[20px] border border-white/20 bg-white/10 p-5">
-          <Text className="mb-[15px] font-bold text-base text-white tracking-wider">
+          <Text className="mb-[5px] font-bold text-base text-white tracking-wider">
             ERROR SEVERITY: {(severity * 100).toFixed(0)}%
           </Text>
+
+          {/* Real-time Vocal Guidance Display */}
+          <View className="h-[40px] justify-center">
+            {feedback ? (
+              <Text className="text-center font-semibold text-yellow-400">
+                {feedback}
+              </Text>
+            ) : null}
+          </View>
 
           <View className="mb-[15px] h-2 w-[224px] justify-center rounded-full bg-white/10">
             <Animated.View

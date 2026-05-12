@@ -7,7 +7,7 @@ import { useMemo, useState } from "react";
  * It provides O(1) memory transfers by using TypedArrays, which can be directly uploaded
  * to WebGL uniform registers without transformation overhead.
  *
- * @returns {Object} { uLandmarks, uSeverity, severity, setSeverity }
+ * @returns {Object} { uLandmarks, uSeverity, severity, setSeverity, feedback }
  */
 export const useMockMLPipeline = () => {
   // Local state to track the manual severity input (0.0 to 1.0)
@@ -91,10 +91,23 @@ export const useMockMLPipeline = () => {
     return data;
   }, [severity]);
 
+  /**
+   * feedback: string
+   * Provides real-time vocal guidance based on error severity.
+   */
+  const feedback = useMemo(() => {
+    if (severity === 0) return "";
+    if (severity < 0.2) return "Perfect form, keep it up!";
+    if (severity < 0.5) return "Watch your balance.";
+    if (severity < 0.8) return "Careful, keep your core tight.";
+    return "High risk! Stop and reset your position.";
+  }, [severity]);
+
   return {
     uLandmarks,
     uSeverity,
     severity,
     setSeverity,
+    feedback,
   };
 };
