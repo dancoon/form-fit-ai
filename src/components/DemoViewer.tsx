@@ -13,12 +13,18 @@ import type { GLTF } from "three-stdlib";
  * Suppress known harmless warnings from expo-gl and three.js.
  * - EXGL: gl.pixelStorei() — Expo GL doesn't implement some WebGL params.
  * - THREE.Clock deprecated — internal to @react-three/drei's animation loop.
+ * - WEBGL_lose_context — Not supported in Expo GL, but Three.js expects it.
  */
 const _originalWarn = console.warn.bind(console);
 const _originalLog = console.log.bind(console);
 console.warn = (...args: unknown[]) => {
   const msg = String(args[0] ?? "");
-  if (msg.includes("THREE.Clock") || msg.includes("pixelStorei")) return;
+  if (
+    msg.includes("THREE.Clock") ||
+    msg.includes("pixelStorei") ||
+    msg.includes("WEBGL_lose_context")
+  )
+    return;
   _originalWarn(...args);
 };
 console.log = (...args: unknown[]) => {
