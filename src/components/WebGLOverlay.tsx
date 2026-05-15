@@ -37,11 +37,13 @@ const FRAGMENT_SHADER = `#version 300 es
     st.y = 1.0 - st.y;
     float aspect = uResolution.x / uResolution.y;
 
-    // Sample background video (Bg)
-    vec3 Bg = texture(uVideoTexture, vTexCoord).rgb;
-    vec3 composite = Bg;
+    // Sample background video (Bg) - Removed because we are an overlay
+    // vec3 Bg = texture(uVideoTexture, vTexCoord).rgb;
+    
+    vec3 finalColor = vec3(0.0);
+    float finalAlpha = 0.0;
 
-    // Iterate through joints to apply specific severity scores (Fix 3)
+    // Iterate through joints to apply specific severity scores
     for (int i = 0; i < 33; i++) {
       float severity = 0.0;
       
@@ -54,7 +56,7 @@ const FRAGMENT_SHADER = `#version 300 es
 
       if (severity > 0.0) {
         float correctedS = pow(severity, 1.0 / 2.2);
-        float radius = mix(0.08, 0.12, correctedS);
+        float radius = mix(0.05, 0.15, correctedS);
         
         vec2 landmark = uLandmarks[i];
         vec2 diff = (st - landmark);
@@ -62,17 +64,32 @@ const FRAGMENT_SHADER = `#version 300 es
         float d = length(diff);
 
         if (d < radius) {
-          // Fix 2: Dynamic Alpha scaling
-          float alpha = mix(0.4, 0.85, correctedS);
-          vec3 Fg = mix(vec3(1.0), vec3(0.0), correctedS); // Color White to Black
+          // Sharper core + Wider glow
+          float distNormalized = d / radius;
+          float core = pow(1.0 - smoothstep(0.0, 0.4, distNormalized), 2.0);
+          float glow = pow(1.0 - distNormalized, 1.5);
           
-          // Fix 2: Exact Alpha Compositing Formula (Fg * alpha) + (Bg * (1.0 - alpha))
-          composite = (Fg * alpha) + (composite * (1.0 - alpha));
+          // Pulse effect
+          float pulse = 0.7 + 0.3 * sin(uTime * 8.0 + float(i) * 0.5);
+          
+          // Combined visibility
+          float alpha = mix(0.5, 0.9, correctedS) * (core * 0.8 + glow * 0.4) * pulse;
+          
+          // Lime to Red
+          vec3 color = mix(vec3(0.5, 1.0, 0.0), vec3(1.0, 0.1, 0.1), correctedS);
+          
+          // Brightness boost for high severity
+          color *= (1.0 + correctedS * 0.5);
+
+          // Additive-style color buildup for intensity
+          finalColor += color * alpha;
+          finalAlpha = max(finalAlpha, alpha * 1.2); // Boost alpha slightly
         }
       }
     }
 
-    fragColor = vec4(composite, 1.0);
+    // Clamp final values for stability
+    fragColor = vec4(clamp(finalColor, 0.0, 1.5), clamp(finalAlpha, 0.0, 0.95));
   }
 `;
 
@@ -175,6 +192,16 @@ export const WebGLOverlay: React.FC<WebGLOverlayProps> = ({
   useRenderLoop(renderFrame);
 
   return (
-    <GLView className="absolute inset-0" onContextCreate={onContextCreate} />
+    <GLView
+      style={{
+        position: "absolute",
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        zIndex: 10,
+      }}
+      onContextCreate={onContextCreate}
+    />
   );
 };
