@@ -1,0 +1,668 @@
+{
+  "VID_20260330_110816": [
+    {
+      "rep_index": 0,
+      "start_frame": 12,
+      "end_frame": 70,
+      "label": 0,
+      "is_correct": true,
+      "errors": {
+        "knee_valgus": false,
+        "insufficient_depth": false,
+        "forward_lean": false
+      },
+      "error_vector": [
+        0,
+        0,
+        0
+      ],
+      "notes": ""
+    },
+    {
+      "rep_index": 1,
+      "start_frame": 232,
+      "end_frame": 271,
+      "label": 0,
+      "is_correct": true,
+      "errors": {
+        "knee_valgus": false,
+        "insufficient_depth": false,
+        "forward_lean": false
+      },
+      "error_vector": [
+        0,
+        0,
+        0
+      ],
+      "notes": ""
+    },
+    {
+      "rep_index": 2,
+      "start_frame": 289,
+      "end_frame": 331,
+      "label": 0,
+      "is_correct": true,
+      "errors": {
+        "knee_valgus": false,
+        "insufficient_depth": false,
+        "forward_lean": false
+      },
+      "error_vector": [
+        0,
+        0,
+        0
+      ],
+      "notes": ""
+    },
+    {
+      "rep_index": 3,
+      "start_frame": 351,
+      "end_frame": 388,
+      "label": 0,
+      "is_correct": true,
+      "errors": {
+        "knee_valgus": false,
+        "insufficient_depth": false,
+        "forward_lean": false
+      },
+      "error_vector": [
+        0,
+        0,
+        0
+      ],
+      "notes": ""
+    },
+    {
+      "rep_index": 4,
+      "start_frame": 407,
+      "end_frame": 441,
+      "label": 0,
+      "is_correct": true,
+      "errors": {
+        "knee_valgus": false,
+        "insufficient_depth": false,
+        "forward_lean": false
+      },
+      "error_vector": [
+        0,
+        0,
+        0
+      ],
+      "notes": ""
+    }
+  ],
+  "VID_20260330_110839": [
+    {
+      "rep_index": 0,
+      "start_frame": 0,
+      "end_frame": 41,
+      "label": 0,
+      "is_correct": true,
+      "errors": {
+        "knee_valgus": false,
+        "insufficient_depth": false,
+        "forward_lean": false
+      },
+      "error_vector": [
+        0,
+        0,
+        0
+      ],
+      "notes": ""
+    },
+    {
+      "rep_index": 1,
+      "start_frame": 67,
+      "end_frame": 103,
+      "label": 0,
+      "is_correct": true,
+      "errors": {
+        "knee_valgus": false,
+        "insufficient_depth": false,
+        "forward_lean": false
+      },
+      "error_vector": [
+        0,
+        0,
+        0
+      ],
+      "notes": ""
+    },
+    {
+      "rep_index": 2,
+      "start_frame": 123,
+      "end_frame": 165,
+      "label": 0,
+      "is_correct": true,
+      "errors": {
+        "knee_valgus": false,
+        "insufficient_depth": false,
+        "forward_lean": false
+      },
+      "error_vector": [
+        0,
+        0,
+        0
+      ],
+      "notes": ""
+    },
+    {
+      "rep_index": 3,
+      "start_frame": 185,
+      "end_frame": 223,
+      "label": 0,
+      "is_correct": true,
+      "errors": {
+        "knee_valgus": false,
+        "insufficient_depth": false,
+        "forward_lean": false
+      },
+      "error_vector": [
+        0,
+        0,
+        0
+      ],
+      "notes": ""
+    }
+  ],
+  "VID_20260330_110851": [
+    {
+      "rep_index": 0,
+      "start_frame": 21,
+      "end_frame": 37,
+      "label": 0,
+      "is_correct": true,
+      "errors": {
+        "knee_valgus": false,
+        "insufficient_depth": false,
+        "forward_lean": false
+      },
+      "error_vector": [
+        0,
+        0,
+        0
+      ],
+      "notes": ""
+    },
+    {
+      "rep_index": 1,
+      "start_frame": 70,
+      "end_frame": 97,
+      "label": 0,
+      "is_correct": true,
+      "errors": {
+        "knee_valgus": false,
+        "insufficient_depth": false,
+        "forward_lean": false
+      },
+      "error_vector": [
+        0,
+        0,
+        0
+      ],
+      "notes": ""
+    },
+    {
+      "rep_index": 2,
+      "start_frame": 132,
+      "end_frame": 145,
+      "label": 0,
+      "is_correct": true,
+      "errors": {
+        "knee_valgus": false,
+        "insufficient_depth": false,
+        "forward_lean": false
+      },
+      "error_vector": [
+        0,
+        0,
+        0
+      ],
+      "notes": ""
+    },
+    {
+      "rep_index": 3,
+      "start_frame": 181,
+      "end_frame": 201,
+      "label": 0,
+      "is_correct": true,
+      "errors": {
+        "knee_valgus": false,
+        "insufficient_depth": false,
+        "forward_lean": false
+      },
+      "error_vector": [
+        0,
+        0,
+        0
+      ],
+      "notes": ""
+    }
+  ],
+  "VID_20260330_110904": [
+    {
+      "rep_index": 0,
+      "start_frame": 19,
+      "end_frame": 54,
+      "label": 0,
+      "is_correct": true,
+      "errors": {
+        "knee_valgus": false,
+        "insufficient_depth": false,
+        "forward_lean": false
+      },
+      "error_vector": [
+        0,
+        0,
+        0
+      ],
+      "notes": ""
+    },
+    {
+      "rep_index": 1,
+      "start_frame": 73,
+      "end_frame": 109,
+      "label": 0,
+      "is_correct": true,
+      "errors": {
+        "knee_valgus": false,
+        "insufficient_depth": false,
+        "forward_lean": false
+      },
+      "error_vector": [
+        0,
+        0,
+        0
+      ],
+      "notes": ""
+    },
+    {
+      "rep_index": 2,
+      "start_frame": 120,
+      "end_frame": 159,
+      "label": 0,
+      "is_correct": true,
+      "errors": {
+        "knee_valgus": false,
+        "insufficient_depth": false,
+        "forward_lean": false
+      },
+      "error_vector": [
+        0,
+        0,
+        0
+      ],
+      "notes": ""
+    }
+  ],
+  "VID_20260330_110942": [
+    {
+      "rep_index": 0,
+      "start_frame": 15,
+      "end_frame": 51,
+      "label": 0,
+      "is_correct": true,
+      "errors": {
+        "knee_valgus": false,
+        "insufficient_depth": false,
+        "forward_lean": false
+      },
+      "error_vector": [
+        0,
+        0,
+        0
+      ],
+      "notes": ""
+    },
+    {
+      "rep_index": 1,
+      "start_frame": 79,
+      "end_frame": 111,
+      "label": 0,
+      "is_correct": true,
+      "errors": {
+        "knee_valgus": false,
+        "insufficient_depth": false,
+        "forward_lean": false
+      },
+      "error_vector": [
+        0,
+        0,
+        0
+      ],
+      "notes": ""
+    },
+    {
+      "rep_index": 2,
+      "start_frame": 131,
+      "end_frame": 162,
+      "label": 1,
+      "is_correct": false,
+      "errors": {
+        "knee_valgus": false,
+        "insufficient_depth": false,
+        "forward_lean": true
+      },
+      "error_vector": [
+        0,
+        0,
+        1
+      ],
+      "notes": ""
+    },
+    {
+      "rep_index": 3,
+      "start_frame": 182,
+      "end_frame": 212,
+      "label": 0,
+      "is_correct": true,
+      "errors": {
+        "knee_valgus": false,
+        "insufficient_depth": false,
+        "forward_lean": false
+      },
+      "error_vector": [
+        0,
+        0,
+        0
+      ],
+      "notes": ""
+    }
+  ],
+  "VID_20260330_111000": [
+    {
+      "rep_index": 0,
+      "start_frame": 0,
+      "end_frame": 48,
+      "label": 0,
+      "is_correct": true,
+      "errors": {
+        "knee_valgus": false,
+        "insufficient_depth": false,
+        "forward_lean": false
+      },
+      "error_vector": [
+        0,
+        0,
+        0
+      ],
+      "notes": ""
+    },
+    {
+      "rep_index": 1,
+      "start_frame": 76,
+      "end_frame": 114,
+      "label": 0,
+      "is_correct": true,
+      "errors": {
+        "knee_valgus": false,
+        "insufficient_depth": false,
+        "forward_lean": false
+      },
+      "error_vector": [
+        0,
+        0,
+        0
+      ],
+      "notes": ""
+    },
+    {
+      "rep_index": 2,
+      "start_frame": 134,
+      "end_frame": 177,
+      "label": 0,
+      "is_correct": true,
+      "errors": {
+        "knee_valgus": false,
+        "insufficient_depth": false,
+        "forward_lean": false
+      },
+      "error_vector": [
+        0,
+        0,
+        0
+      ],
+      "notes": ""
+    },
+    {
+      "rep_index": 3,
+      "start_frame": 192,
+      "end_frame": 230,
+      "label": 0,
+      "is_correct": true,
+      "errors": {
+        "knee_valgus": false,
+        "insufficient_depth": false,
+        "forward_lean": false
+      },
+      "error_vector": [
+        0,
+        0,
+        0
+      ],
+      "notes": ""
+    }
+  ],
+  "VID_20260330_111016": [
+    {
+      "rep_index": 0,
+      "start_frame": 16,
+      "end_frame": 28,
+      "label": 0,
+      "is_correct": true,
+      "errors": {
+        "knee_valgus": false,
+        "insufficient_depth": false,
+        "forward_lean": false
+      },
+      "error_vector": [
+        0,
+        0,
+        0
+      ],
+      "notes": ""
+    },
+    {
+      "rep_index": 1,
+      "start_frame": 40,
+      "end_frame": 59,
+      "label": 0,
+      "is_correct": true,
+      "errors": {
+        "knee_valgus": false,
+        "insufficient_depth": false,
+        "forward_lean": false
+      },
+      "error_vector": [
+        0,
+        0,
+        0
+      ],
+      "notes": ""
+    },
+    {
+      "rep_index": 2,
+      "start_frame": 133,
+      "end_frame": 144,
+      "label": 0,
+      "is_correct": true,
+      "errors": {
+        "knee_valgus": false,
+        "insufficient_depth": false,
+        "forward_lean": false
+      },
+      "error_vector": [
+        0,
+        0,
+        0
+      ],
+      "notes": ""
+    },
+    {
+      "rep_index": 3,
+      "start_frame": 173,
+      "end_frame": 191,
+      "label": 0,
+      "is_correct": true,
+      "errors": {
+        "knee_valgus": false,
+        "insufficient_depth": false,
+        "forward_lean": false
+      },
+      "error_vector": [
+        0,
+        0,
+        0
+      ],
+      "notes": ""
+    },
+    {
+      "rep_index": 4,
+      "start_frame": 192,
+      "end_frame": 204,
+      "label": 0,
+      "is_correct": true,
+      "errors": {
+        "knee_valgus": false,
+        "insufficient_depth": false,
+        "forward_lean": false
+      },
+      "error_vector": [
+        0,
+        0,
+        0
+      ],
+      "notes": ""
+    },
+    {
+      "rep_index": 5,
+      "start_frame": 232,
+      "end_frame": 268,
+      "label": 0,
+      "is_correct": true,
+      "errors": {
+        "knee_valgus": false,
+        "insufficient_depth": false,
+        "forward_lean": false
+      },
+      "error_vector": [
+        0,
+        0,
+        0
+      ],
+      "notes": ""
+    }
+  ],
+  "VID_20260330_111030": [
+    {
+      "rep_index": 0,
+      "start_frame": 27,
+      "end_frame": 71,
+      "label": 0,
+      "is_correct": true,
+      "errors": {
+        "knee_valgus": false,
+        "insufficient_depth": false,
+        "forward_lean": false
+      },
+      "error_vector": [
+        0,
+        0,
+        0
+      ],
+      "notes": ""
+    },
+    {
+      "rep_index": 1,
+      "start_frame": 102,
+      "end_frame": 144,
+      "label": 0,
+      "is_correct": true,
+      "errors": {
+        "knee_valgus": false,
+        "insufficient_depth": false,
+        "forward_lean": false
+      },
+      "error_vector": [
+        0,
+        0,
+        0
+      ],
+      "notes": ""
+    },
+    {
+      "rep_index": 2,
+      "start_frame": 159,
+      "end_frame": 203,
+      "label": 0,
+      "is_correct": true,
+      "errors": {
+        "knee_valgus": false,
+        "insufficient_depth": false,
+        "forward_lean": false
+      },
+      "error_vector": [
+        0,
+        0,
+        0
+      ],
+      "notes": ""
+    },
+    {
+      "rep_index": 3,
+      "start_frame": 218,
+      "end_frame": 256,
+      "label": 0,
+      "is_correct": true,
+      "errors": {
+        "knee_valgus": false,
+        "insufficient_depth": false,
+        "forward_lean": false
+      },
+      "error_vector": [
+        0,
+        0,
+        0
+      ],
+      "notes": ""
+    }
+  ],
+  "VID_20260330_111054": [
+    {
+      "rep_index": 0,
+      "start_frame": 12,
+      "end_frame": 48,
+      "label": 0,
+      "is_correct": true,
+      "errors": {
+        "knee_valgus": false,
+        "insufficient_depth": false,
+        "forward_lean": false
+      },
+      "error_vector": [
+        0,
+        0,
+        0
+      ],
+      "notes": ""
+    },
+    {
+      "rep_index": 1,
+      "start_frame": 71,
+      "end_frame": 114,
+      "label": 0,
+      "is_correct": true,
+      "errors": {
+        "knee_valgus": false,
+        "insufficient_depth": false,
+        "forward_lean": false
+      },
+      "error_vector": [
+        0,
+        0,
+        0
+      ],
+      "notes": ""
+    }
+  ]
+}

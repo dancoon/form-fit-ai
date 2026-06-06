@@ -1,0 +1,3 @@
+[console_scripts]
+squat-annotate = run_annotation:main
+squat-train = run_pipeline:main

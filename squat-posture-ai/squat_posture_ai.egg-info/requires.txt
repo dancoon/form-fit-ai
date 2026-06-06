@@ -1,0 +1,11 @@
+tensorflow<2.20,>=2.15.0
+numpy<2.0,>=1.26.0
+pandas>=2.2.0
+opencv-python-headless<4.12,>=4.10.0
+mediapipe<0.11,>=0.10.14
+scikit-learn
+matplotlib
+seaborn
+xgboost
+tqdm
+tensorflow-model-optimization

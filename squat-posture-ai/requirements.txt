@@ -1,0 +1,22 @@
+# Compatible stack: mediapipe requires numpy<2; opencv 4.12 requires numpy>=2.
+# Use numpy 1.26 + opencv 4.11. Python 3.10–3.12.
+# If pip reports hash mismatches, run: pip cache purge && pip install --no-cache-dir -r requirements.txt
+
+tensorflow==2.19.0
+numpy==1.26.4
+pandas==2.3.3
+opencv-python-headless==4.11.0.86
+opencv-contrib-python==4.11.0.86
+mediapipe==0.10.21
+jax==0.7.1
+jaxlib==0.7.1
+scipy==1.17.1
+scikit-learn>=1.5.0
+matplotlib>=3.8.0
+seaborn>=0.13.0
+xgboost>=2.0.0
+tqdm>=4.66.0
+pytest>=8.0.0
+jupyterlab
+ipywidgets
+tensorflow-model-optimization

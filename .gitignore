@@ -43,6 +43,3 @@ app-example
 /ios
 /android
 .vscode/
-
-# ML training repo (separate git root — see squat-posture-ai/)
-squat-posture-ai/
