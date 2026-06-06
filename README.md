@@ -1,38 +1,53 @@
-# FORM FIT AI
+# Form Fit AI
 
-A premium fitness tracking application built with Expo, Bun, and Biome.
+On-device squat rep counting and form feedback. Expo + MediaPipe pose + TFLite classifier.
 
-## Getting Started
-
-1. **Install dependencies**
-   ```bash
-   bun install
-   ```
-
-2. **Start the app**
-   ```bash
-   bun start
-   ```
-
-## Project Structure
-
-- `src/app/`: File-based routing and screens.
-- `src/components/`: Reusable UI components.
-- `src/hooks/`: Custom React hooks.
-- `src/constants/`: App constants and theme colors.
-- `src/assets/`: Static assets (images, fonts).
-
-## Tooling
-
-- **Package Manager**: [Bun](https://bun.sh/)
-- **Linting & Formatting**: [Biome](https://biomejs.dev/)
-- **Framework**: [Expo](https://expo.dev/)
-- **Styling**: [NativeWind](https://www.nativewind.dev/) (Tailwind CSS for React Native)
-
-## Linting
+## Run
 
 ```bash
-bun lint    # Check for issues
-bun format  # Format code
-bun clean   # Fix issues automatically
+cd mobile && bun install
+bun start          # Expo Go
+bun run dev        # dev client (camera, pose, model)
 ```
+
+Workout flows need a physical device.
+
+## Layout
+
+```
+mobile/              Expo app
+squat-posture-ai/    Python training + annotation
+ml/                  notebooks (mirror of squat-posture-ai/notebooks)
+docs/
+```
+
+Squat domain: `mobile/src/lib/squat/`. `lib/` must not import from `app/`, `components/`, `hooks/`, or `context/`.
+
+## Commands
+
+```bash
+bun test
+bun run typecheck
+bun check
+```
+
+## ML
+
+Setup and constraints: [squat-posture-ai/README.md](squat-posture-ai/README.md)
+
+```bash
+cd squat-posture-ai
+python run_annotation.py extract|segment|export
+python run_pipeline.py
+```
+
+Model deploy: [docs/MODEL_DEPLOY.md](docs/MODEL_DEPLOY.md)
+
+## Docs
+
+| Doc | Contents |
+|-----|----------|
+| [ARCHITECTURE.md](docs/ARCHITECTURE.md) | App structure, squat pipeline |
+| [MODEL_DEPLOY.md](docs/MODEL_DEPLOY.md) | TFLite + scaler swap |
+| [CONTRIBUTING.md](docs/CONTRIBUTING.md) | PR checks, edit map |
+| [QA_CHECKLIST.md](docs/QA_CHECKLIST.md) | Device regression |

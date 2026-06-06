@@ -1,0 +1,73 @@
+{
+  "expo": {
+    "name": "form-fit-ai",
+    "slug": "form-fit-ai",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "icon": "./src/assets/images/icon.png",
+    "scheme": "formfitai",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.anonymous.formfitai",
+      "infoPlist": {
+        "NSCameraUsageDescription": "FormFit AI needs camera access to analyze your exercise form."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#E6F4FE",
+        "foregroundImage": "./src/assets/images/android-icon-foreground.png",
+        "backgroundImage": "./src/assets/images/android-icon-background.png",
+        "monochromeImage": "./src/assets/images/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false,
+      "package": "com.anonymous.formfitai",
+      "permissions": ["android.permission.CAMERA"]
+    },
+    "web": {
+      "output": "static",
+      "favicon": "./src/assets/images/favicon.png"
+    },
+    "plugins": [
+      "react-native-fast-tflite",
+      "expo-router",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "newArchEnabled": true
+          },
+          "ios": {
+            "newArchEnabled": true
+          }
+        }
+      ],
+      [
+        "react-native-mediapipe-posedetection",
+        {
+          "assetsPaths": ["./src/assets/models/"]
+        }
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "image": "./src/assets/images/splash-icon.png",
+          "imageWidth": 200,
+          "resizeMode": "contain",
+          "backgroundColor": "#ffffff"
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true,
+      "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "7941805e-a964-43b1-a5d4-1219fc3f7ea0"
+      }
+    }
+  }
+}

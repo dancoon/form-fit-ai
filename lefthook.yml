@@ -2,5 +2,19 @@ pre-commit:
   parallel: true
   commands:
     biome-check:
+      root: mobile/
       glob: "*.{js,ts,jsx,tsx,json}"
       run: bunx @biomejs/biome check --write {staged_files} && git add {staged_files}
+
+pre-push:
+  parallel: true
+  commands:
+    typecheck:
+      root: mobile/
+      run: bun run typecheck
+    test:
+      root: mobile/
+      run: bun test
+    biome:
+      root: mobile/
+      run: bun check

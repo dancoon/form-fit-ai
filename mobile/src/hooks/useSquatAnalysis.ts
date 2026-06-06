@@ -1,0 +1,287 @@
+/**
+ * React adapter for {@link SquatInferencePipeline}: model load, pose frames, inference scheduling.
+ * Domain rules live in src/lib/squat — keep this hook orchestration-only.
+ */
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { AppState, type AppStateStatus } from "react-native";
+import type { TfliteModel } from "react-native-fast-tflite";
+import { useAppSettings } from "@/context/AppSettingsContext";
+import { useSquatModel } from "@/hooks/useSquatModel";
+import { logError } from "@/lib/logging";
+import { getLiveFormCue } from "@/lib/squat/liveFormCues";
+import {
+  buildTrackerFeedback,
+  getSquatRuntimeConfig,
+  hasTrackerUiChanged,
+  phaseLabel,
+  predictionToSeverity,
+  predictionToUiSeverity,
+  resolveViewAngle,
+  SquatInferencePipeline,
+  SquatPhase,
+  type RepTrackerSnapshot,
+  type ResolvedViewAngle,
+  type SquatInferenceResult,
+  ViewAngleVoter,
+} from "@/lib/squat";
+
+export function useSquatAnalysis(enabled: boolean) {
+  const { cameraAnglePreset, sensitivity, liveCuesEnabled, repCountOnlyMode } =
+    useAppSettings();
+
+  const viewVoterRef = useRef(new ViewAngleVoter());
+  const [detectedView, setDetectedView] = useState<ResolvedViewAngle>("side");
+
+  const activeViewAngle = useMemo(
+    () => resolveViewAngle(cameraAnglePreset, detectedView),
+    [cameraAnglePreset, detectedView],
+  );
+
+  const runtimeConfig = useMemo(
+    () => getSquatRuntimeConfig({ anglePreset: activeViewAngle, sensitivity }),
+    [activeViewAngle, sensitivity],
+  );
+
+  const pipelineRef = useRef(new SquatInferencePipeline({ runtimeConfig }));
+  const trackerLatestRef = useRef<RepTrackerSnapshot | null>(null);
+  const inferenceBusyRef = useRef(false);
+  const pendingRepRef = useRef<{
+    window: Float32Array[];
+    snapshot: RepTrackerSnapshot;
+  } | null>(null);
+  const wasSquattingRef = useRef(false);
+  const lastLiveCueRef = useRef<string>("");
+
+  const {
+    loadState,
+    modelRef,
+    modelReady,
+    modelLoading,
+    modelError,
+    repCountOnly,
+    degradeToRepCountOnly,
+  } = useSquatModel(enabled, repCountOnlyMode);
+
+  const modelLoadStatus = loadState.status;
+
+  const [result, setResult] = useState<SquatInferenceResult | null>(null);
+  const [tracker, setTracker] = useState<RepTrackerSnapshot | null>(null);
+  const [liveCue, setLiveCue] = useState<string>("");
+
+  const publishTracker = useCallback((snapshot: RepTrackerSnapshot) => {
+    trackerLatestRef.current = snapshot;
+    setTracker((prev) =>
+      hasTrackerUiChanged(prev, snapshot) ? snapshot : prev,
+    );
+  }, []);
+
+  useEffect(() => {
+    pipelineRef.current.setRuntimeConfig(runtimeConfig);
+  }, [runtimeConfig]);
+
+  const prevViewRef = useRef(activeViewAngle);
+  useEffect(() => {
+    if (prevViewRef.current === activeViewAngle) return;
+    prevViewRef.current = activeViewAngle;
+    pipelineRef.current.requestCalibration();
+    viewVoterRef.current.reset();
+    trackerLatestRef.current = null;
+    setResult(null);
+    setTracker(null);
+    wasSquattingRef.current = false;
+  }, [activeViewAngle]);
+
+  useEffect(() => {
+    if (!enabled) {
+      pipelineRef.current.reset();
+      viewVoterRef.current.reset();
+      trackerLatestRef.current = null;
+      setResult(null);
+      setTracker(null);
+      setLiveCue("");
+      wasSquattingRef.current = false;
+    }
+  }, [enabled]);
+
+  useEffect(() => {
+    const onChange = (next: AppStateStatus) => {
+      if (next === "background" && enabled) {
+        pipelineRef.current.reset();
+        trackerLatestRef.current = null;
+        setResult(null);
+        setTracker(null);
+        wasSquattingRef.current = false;
+      }
+    };
+    const sub = AppState.addEventListener("change", onChange);
+    return () => sub.remove();
+  }, [enabled]);
+
+  const runInference = useCallback(
+    async (
+      model: TfliteModel,
+      repWindow: Float32Array[],
+      snapshot: RepTrackerSnapshot,
+    ) => {
+      inferenceBusyRef.current = true;
+      try {
+        const next = await pipelineRef.current.runOnRepWindow(
+          model,
+          repWindow,
+          snapshot,
+        );
+        if (next) setResult(next);
+      } catch (error) {
+        logError("squat", error);
+        degradeToRepCountOnly();
+      } finally {
+        inferenceBusyRef.current = false;
+        const pending = pendingRepRef.current;
+        pendingRepRef.current = null;
+        const m = modelRef.current;
+        if (pending && m) {
+          void runInference(m, pending.window, pending.snapshot);
+        }
+      }
+    },
+    [degradeToRepCountOnly, modelRef],
+  );
+
+  const requestCalibration = useCallback(() => {
+    pipelineRef.current.requestCalibration();
+    setResult(null);
+  }, []);
+
+  const onPoseLost = useCallback(() => {
+    pipelineRef.current.notifyPoseLost();
+    const snap = pipelineRef.current.snapshot;
+    if (snap) publishTracker(snap);
+  }, [publishTracker]);
+
+  const onPoseFrame = useCallback(
+    (rawLandmarks: Float32Array) => {
+      if (!enabled) return;
+
+      if (cameraAnglePreset === "auto") {
+        const voted = viewVoterRef.current.vote(rawLandmarks);
+        if (voted) setDetectedView(voted);
+      }
+
+      if (!modelReady && modelLoadStatus !== "loading") return;
+
+      const snapshot = pipelineRef.current.pushFrame(rawLandmarks);
+      publishTracker(snapshot);
+
+      if (snapshot.isSquatting && !wasSquattingRef.current) {
+        setResult(null);
+        lastLiveCueRef.current = "";
+      }
+      wasSquattingRef.current = snapshot.isSquatting;
+
+      if (liveCuesEnabled && snapshot.isSquatting) {
+        const cue = getLiveFormCue(snapshot, rawLandmarks, runtimeConfig.rep);
+        if (cue && cue.message !== lastLiveCueRef.current) {
+          lastLiveCueRef.current = cue.message;
+          setLiveCue(cue.message);
+        }
+      } else if (!snapshot.isSquatting) {
+        setLiveCue("");
+        lastLiveCueRef.current = "";
+      }
+
+      if (modelLoadStatus !== "loaded" || !snapshot.repWindowReady) return;
+
+      const repWindow = pipelineRef.current.takeCompletedRepWindow();
+      if (!repWindow) return;
+
+      const model = modelRef.current;
+      if (!model) return;
+      if (inferenceBusyRef.current) {
+        pendingRepRef.current = { window: repWindow, snapshot };
+        return;
+      }
+      void runInference(model, repWindow, snapshot);
+    },
+    [
+      enabled,
+      cameraAnglePreset,
+      modelLoadStatus,
+      modelReady,
+      runtimeConfig,
+      liveCuesEnabled,
+      runInference,
+      publishTracker,
+      modelRef,
+    ],
+  );
+
+  const overlaySeverityRef = useRef(new Float32Array(4));
+  const overlaySeverity = useMemo(() => {
+    if (!result) return overlaySeverityRef.current;
+    const next = predictionToSeverity(result);
+    overlaySeverityRef.current.set(next);
+    return overlaySeverityRef.current;
+  }, [result]);
+
+  const severity = useMemo(
+    () => (result ? predictionToUiSeverity(result, runtimeConfig) : 0),
+    [result, runtimeConfig],
+  );
+
+  const feedback = useMemo(
+    () =>
+      buildTrackerFeedback({
+        tracker: tracker ?? trackerLatestRef.current,
+        result,
+        liveCue,
+        repCountOnlyMode: repCountOnly,
+        activeViewAngle,
+      }),
+    [tracker, result, liveCue, repCountOnly, activeViewAngle],
+  );
+
+  const displayTracker = tracker ?? trackerLatestRef.current;
+  const phase = displayTracker?.phase ?? SquatPhase.Standing;
+  const buffering =
+    displayTracker?.calibrated === true &&
+    displayTracker.isSquatting &&
+    !displayTracker.repWindowReady;
+
+  const reset = useCallback(() => {
+    pipelineRef.current.reset();
+    viewVoterRef.current.reset();
+    trackerLatestRef.current = null;
+    setResult(null);
+    setTracker(null);
+    setLiveCue("");
+    wasSquattingRef.current = false;
+  }, []);
+
+  return {
+    onPoseFrame,
+    onPoseLost,
+    requestCalibration,
+    overlaySeverity,
+    severity,
+    feedback,
+    result,
+    tracker: displayTracker,
+    modelReady,
+    modelLoading,
+    modelError,
+    repCountOnly,
+    buffering,
+    bufferLength: displayTracker?.activeRepFrameCount ?? 0,
+    repCount: displayTracker?.repCount ?? 0,
+    phase,
+    phaseLabel: phaseLabel(phase),
+    calibrated: displayTracker?.calibrated ?? false,
+    calibrationRequested: displayTracker?.calibrationRequested ?? false,
+    isSquatting: displayTracker?.isSquatting ?? false,
+    repProgress: displayTracker?.repProgress ?? 0,
+    hipKneeAngle: displayTracker?.hipKneeAngle ?? 0,
+    repMinHipKneeAngle: displayTracker?.repMinHipKneeAngle ?? null,
+    activeViewAngle,
+    reset,
+  };
+}
