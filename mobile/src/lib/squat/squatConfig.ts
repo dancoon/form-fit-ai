@@ -49,7 +49,7 @@ const SIDE_REP: RepThresholds = {
   // Hip→knee segment angle is unreliable in 2D profile (reads ~170° standing).
   trackingMode: "knee_min",
   downAngle: 115,
-  upAngle: 155,
+  upAngle: 150,
   adequateDepth: 95,
   calibrationFrames: 10,
   thighSmoothAlpha: 0.6,
@@ -64,7 +64,7 @@ const SIDE_REP: RepThresholds = {
 const FRONT_REP: RepThresholds = {
   trackingMode: "knee_mean",
   downAngle: 115,
-  upAngle: 155,
+  upAngle: 150,
   adequateDepth: 95,
   calibrationFrames: 10,
   thighSmoothAlpha: 0.6,

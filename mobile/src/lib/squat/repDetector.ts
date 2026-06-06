@@ -163,10 +163,11 @@ export class SquatRepTracker {
   private shouldEndRep(rawPrimary: number): boolean {
     const r = this.rep();
     if (!this.sawBottom) return false;
+    if (rawPrimary >= r.upAngle) return true;
     if (this.standingBaseline != null) {
       return this.descentFromStand(rawPrimary) <= r.endDescentMargin;
     }
-    return rawPrimary >= r.upAngle;
+    return false;
   }
 
   private atBottom(rawPrimary: number): boolean {
