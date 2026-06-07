@@ -162,7 +162,3 @@ class BiomechanicsEngine:
             features.append(frame_features)
 
         return np.array(features, dtype=np.float32)
-
-
-print(f"Features per frame: {cfg.num_joint_angles} angles + {cfg.num_symmetry_features} symmetry + "
-      f"{cfg.num_dynamics_features} dynamics = {cfg.num_engineered_features}")

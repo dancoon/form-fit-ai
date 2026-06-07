@@ -4,15 +4,15 @@ from typing import List
 
 from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau
 
-from utils.config import Config
+from utils.model_profiles import ResolvedModelProfile
 
-def get_training_callbacks(config: Config, model_name: str) -> List:
+def get_training_callbacks(profile: ResolvedModelProfile, model_name: str) -> List:
     """Training callbacks shared by TrainingPipeline."""
     _ = model_name
     return [
         EarlyStopping(
             monitor='val_classification_accuracy',
-            patience=config.patience,
+            patience=profile.patience,
             restore_best_weights=True,
             mode='max',
         ),

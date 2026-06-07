@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import time
 from typing import Dict, List
 
 import numpy as np
@@ -8,8 +9,8 @@ from tensorflow import keras
 from tensorflow.keras import Model
 
 from training.callbacks import get_training_callbacks
-from training.losses import compile_multitask_model
 from utils.config import Config
+from utils.model_profiles import ResolvedModelProfile
 class TrainingPipeline:
     """Unified training pipeline for all deep learning models."""
 
@@ -18,17 +19,31 @@ class TrainingPipeline:
         self.histories = {}
         self.trained_models = {}
 
-    def _smooth_labels(self, y: np.ndarray) -> np.ndarray:
-        s = self.cfg.label_smoothing
-        if s <= 0:
-            return y.astype(np.float32)
-        return y.astype(np.float32) * (1.0 - s) + 0.5 * s
+    def _classification_targets(
+        self,
+        y: np.ndarray,
+        *,
+        smooth: bool,
+        label_smoothing: float | None = None,
+    ) -> np.ndarray:
+        """Format class labels for the sigmoid head.
 
-    def compile_model(self, model: Model) -> Model:
+        Smoothing is training-only: applying it to validation breaks Keras
+        binary accuracy (soft targets never equal thresholded predictions).
+        """
+        targets = y.astype(np.float32).reshape(-1, 1)
+        if not smooth:
+            return targets
+        s = self.cfg.label_smoothing if label_smoothing is None else label_smoothing
+        if s <= 0:
+            return targets
+        return targets * (1.0 - s) + 0.5 * s
+
+    def compile_model(self, model: Model, profile: ResolvedModelProfile) -> Model:
         """Compile model with multi-task losses."""
         model.compile(
             optimizer=keras.optimizers.Adam(
-                learning_rate=self.cfg.learning_rate,
+                learning_rate=profile.learning_rate,
                 clipnorm=self.cfg.gradient_clip_norm
             ),
             loss={
@@ -46,34 +61,27 @@ class TrainingPipeline:
         )
         return model
 
-    def get_callbacks(self, model_name: str) -> List:
+    def get_callbacks(self, profile: ResolvedModelProfile, model_name: str) -> List:
         """Get training callbacks."""
-        return [
-            EarlyStopping(
-                monitor='val_classification_accuracy',
-                patience=self.cfg.patience,
-                restore_best_weights=True,
-                mode='max'
-            ),
-            ReduceLROnPlateau(
-                monitor='val_loss',
-                factor=0.5,
-                patience=7,
-                min_lr=1e-6
-            ),
-        ]
+        return get_training_callbacks(profile, model_name)
 
     def train_model(self, model: Model, model_name: str,
                     splits: Dict[str, np.ndarray]) -> Dict:
         """Train a single model and return results."""
-        model = self.compile_model(model)
+        profile = self.cfg.get_model_profile(model_name)
+        model = self.compile_model(model, profile)
 
         print(f"Training: {model_name}")
+        print(f"  Profile: {profile.summary()}")
         print(f"Parameters: {model.count_params():,}")
         print(f"{'='*60}")
 
-        y_train_cls = self._smooth_labels(splits['y_train'])
-        y_val_cls = self._smooth_labels(splits['y_val'])
+        y_train_cls = self._classification_targets(
+            splits['y_train'],
+            smooth=True,
+            label_smoothing=profile.label_smoothing,
+        )
+        y_val_cls = self._classification_targets(splits['y_val'], smooth=False)
 
         start_time = time.time()
         history = model.fit(
@@ -89,9 +97,9 @@ class TrainingPipeline:
                     'error_detection': splits['ye_val'],
                 }
             ),
-            epochs=self.cfg.epochs,
-            batch_size=self.cfg.batch_size,
-            callbacks=self.get_callbacks(model_name),
+            epochs=profile.epochs,
+            batch_size=profile.batch_size,
+            callbacks=self.get_callbacks(profile, model_name),
             verbose=0
         )
         train_time = time.time() - start_time
@@ -127,6 +135,3 @@ class TrainingPipeline:
         for name, model in models.items():
             results[name] = self.train_model(model, name, splits)
         return results
-
-
-dl_results = trainer.train_all(all_dl_models, splits)

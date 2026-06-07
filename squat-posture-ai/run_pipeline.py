@@ -9,22 +9,25 @@ from models.architectures.factory import ModelFactory
 from training.baselines import BaselineModels
 from training.trainer import TrainingPipeline
 from utils.config import Config
-from utils.data_generator import SquatDataGenerator
-from utils.data_pipeline import DataPipeline
-from utils.biomechanics import BiomechanicsEngine
+from utils.dataset_loader import prepare_training_splits
+
 
 def main():
     cfg = Config()
     tf.random.set_seed(cfg.random_state)
     np.random.seed(cfg.random_state)
     print(f'Config: {cfg.num_engineered_features} features, seq={cfg.sequence_length}')
-    gen = SquatDataGenerator(cfg)
-    raw_X, y_cls, y_err = gen.generate_dataset()
-    biomech = BiomechanicsEngine()
-    X = np.array([biomech.extract_sequence_features(seq) for seq in raw_X])
-    pipeline = DataPipeline(cfg)
-    splits = pipeline.split_data(X, y_cls, y_err)
-    splits = pipeline.normalize_sequences(splits)
+
+    splits, pipeline = prepare_training_splits(cfg)
+
+    print(f"Train: {splits['X_train'].shape[0]} samples")
+    print(f"Val:   {splits['X_val'].shape[0]} samples")
+    print(f"Test:  {splits['X_test'].shape[0]} samples")
+    print(f"Input shape: {splits['X_train'].shape[1:]}")
+
+    scaler_path = pipeline.export_feature_scaler(f"{cfg.results_dir}/feature_scaler.json")
+    print(f"Scaler exported → {scaler_path} (copy to app assets after retrain)")
+
     factory = ModelFactory(cfg)
     models = factory.get_all_models()
     trainer = TrainingPipeline(cfg)
@@ -36,6 +39,7 @@ def main():
     evaluator.print_comparison_table()
     print('Pipeline complete. Export TFLite via mobile/tflite_converter.py')
     return metrics
+
 
 if __name__ == '__main__':
     main()

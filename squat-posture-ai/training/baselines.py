@@ -1,11 +1,18 @@
 from __future__ import annotations
 
+import time
 from typing import Dict
 
 import numpy as np
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import accuracy_score, f1_score, roc_auc_score
+from sklearn.metrics import (
+    accuracy_score,
+    f1_score,
+    precision_score,
+    recall_score,
+    roc_auc_score,
+)
 import xgboost as xgb
 
 from utils.config import Config
@@ -47,8 +54,8 @@ class BaselineModels:
             ),
             'XGBoost': xgb.XGBClassifier(
                 n_estimators=200, max_depth=8, learning_rate=0.1,
-                random_state=self.cfg.random_state, use_label_encoder=False,
-                eval_metric='logloss'
+                random_state=self.cfg.random_state,
+                eval_metric='logloss',
             ),
         }
 
@@ -84,8 +91,3 @@ class BaselineModels:
                   f"AUC: {results[name]['roc_auc']:.4f}")
 
         return results
-
-
-print("Training baseline ML models...")
-baselines = BaselineModels(cfg)
-baseline_results = baselines.train_and_evaluate(splits)

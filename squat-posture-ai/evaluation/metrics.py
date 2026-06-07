@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from typing import Dict, List
-
 import numpy as np
 import pandas as pd
 from sklearn.metrics import (
@@ -123,7 +122,3 @@ class EvaluationPipeline:
         print("="*100)
         print(df.to_string(index=False))
         print("="*100)
-
-
-results_df = evaluator.evaluate_all(dl_results, baseline_results, splits)
-evaluator.print_comparison_table()

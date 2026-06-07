@@ -4,7 +4,8 @@ from typing import Optional, Tuple
 
 import numpy as np
 
-from utils.config import Config
+from utils.augmentation import augment_raw_sequence
+from utils.config import Config, LM
 class SquatDataGenerator:
     """Generates synthetic squat pose data with realistic biomechanics."""
 
@@ -107,12 +108,15 @@ class SquatDataGenerator:
 
     def _augment_raw_sequence(self, sequence: np.ndarray) -> np.ndarray:
         """Pose-space augmentation before feature extraction."""
-        seq = sequence.copy()
-        if self.rng.random() < self.cfg.mirror_augment_prob:
-            seq[:, 0::4] = 1.0 - seq[:, 0::4]  # mirror x for all landmarks
-        noise = self.rng.normal(0, self.cfg.pose_noise_scale, seq.shape)
-        noise[:, 3::4] = 0
-        return np.clip(seq + noise, -0.2, 1.2).astype(np.float32)
+        mirror = self.rng.random() < self.cfg.mirror_augment_prob
+        return augment_raw_sequence(
+            sequence,
+            self.cfg,
+            self.rng,
+            mirror=mirror,
+            jitter=True,
+            time_warp=False,
+        )
 
     def generate_squat_sequence(self, error_type: Optional[str] = None,
                                 seq_length: Optional[int] = None,
@@ -239,12 +243,3 @@ class SquatDataGenerator:
 
         perm = self.rng.permutation(len(sequences))
         return sequences[perm], labels[perm], error_vectors[perm]
-
-
-print("Generating synthetic squat dataset...")
-raw_sequences, labels, error_vectors = data_gen.generate_dataset()
-print(f"Generated: {raw_sequences.shape[0]} sequences, shape={raw_sequences.shape}")
-print(f"Labels distribution: correct={np.sum(labels==0)}, incorrect={np.sum(labels==1)}")
-print(f"Error types: knee_valgus={np.sum(error_vectors[:,0])}, "
-      f"insufficient_depth={np.sum(error_vectors[:,1])}, "
-      f"forward_lean={np.sum(error_vectors[:,2])}")

@@ -10,9 +10,11 @@ import matplotlib.pyplot as plt
 from IPython.display import HTML as IHTML
 from IPython.display import clear_output, display
 
+from annotation.cache import resolve_video_path
 from annotation.labels import CHEATSHEET_HTML, KEYBOARD_JS, LABEL_MAP
 from annotation.rep_segmenter import RepBoundary
 from annotation.store import AnnotationStore
+from annotation.video_display import DEFAULT_DISPLAY_ROTATION_CW, orient_frame_for_display
 
 
 def show_rep_frames(
@@ -20,7 +22,10 @@ def show_rep_frames(
     start_frame: int,
     end_frame: int,
     num_display: int = 8,
+    *,
+    rotation_cw: int = DEFAULT_DISPLAY_ROTATION_CW,
 ) -> None:
+    """Display key frames from a rep for visual inspection."""
     cap = cv2.VideoCapture(str(video_path))
     if not cap.isOpened():
         print(f"Cannot open: {video_path}")
@@ -38,7 +43,10 @@ def show_rep_frames(
         cap.set(cv2.CAP_PROP_POS_FRAMES, fi)
         ret, frame = cap.read()
         if ret:
-            frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            frame_rgb = cv2.cvtColor(
+                orient_frame_for_display(frame, rotation_cw),
+                cv2.COLOR_BGR2RGB,
+            )
             axes[ax_idx].imshow(frame_rgb)
             axes[ax_idx].set_title(f"Frame {fi}", fontsize=9)
         axes[ax_idx].axis("off")
@@ -54,6 +62,8 @@ def annotate_interactively(
     video_path: str | Path,
     reps: list[RepBoundary],
     on_complete: Callable[[], None] | None = None,
+    *,
+    rotation_cw: int = DEFAULT_DISPLAY_ROTATION_CW,
 ) -> None:
     """Widget-based annotation with keyboard shortcuts (C/K/D/F/1/S, Space/→)."""
     state = {"idx": 0, "ready_for_next": False}
@@ -99,28 +109,6 @@ def annotate_interactively(
     )
     attr_injector = IHTML(attr_js)
 
-    def first_unannotated() -> int | None:
-        for j in range(len(reps)):
-            if not store.is_rep_annotated(video_name, j):
-                return j
-        return None
-
-    def update_progress_header() -> None:
-        prog = store.get_video_progress(video_name, len(reps))
-        progress_html.value = (
-            f'<div style="font-size:0.95em;color:#555">'
-            f"Video progress: {prog['annotated']}/{prog['total']} "
-            f"({prog['progress_pct']:.0f}%)"
-            f"</div>"
-        )
-
-    def refresh_grid() -> None:
-        grid.value = " ".join(_grid_symbol(i) for i in range(len(reps)))
-
-    def set_label_buttons_enabled(enabled: bool) -> None:
-        for btn in label_btns.values():
-            btn.disabled = not enabled
-
     def _grid_symbol(i: int) -> str:
         if i == state["idx"]:
             return "▶"
@@ -129,7 +117,48 @@ def annotate_interactively(
             return "○"
         return "✓" if ann["is_correct"] else "!"
 
-    grid = widgets.HTML()
+    def _grid_style(i: int) -> str:
+        if i == state["idx"]:
+            return "primary"
+        ann = store.get_rep_annotation(video_name, i)
+        if ann is None:
+            return ""
+        return "success" if ann["is_correct"] else "warning"
+
+    grid_btns = [
+        widgets.Button(
+            description=f"{_grid_symbol(i)} {i + 1}",
+            button_style=_grid_style(i),
+            layout=widgets.Layout(width="52px", min_width="52px"),
+            disabled=store.is_rep_annotated(video_name, i),
+        )
+        for i in range(len(reps))
+    ]
+    grid_box = widgets.HBox(grid_btns, layout=widgets.Layout(flex_wrap="wrap"))
+
+    def first_unannotated() -> int | None:
+        for i in range(len(reps)):
+            if not store.is_rep_annotated(video_name, i):
+                return i
+        return None
+
+    def update_progress_header() -> None:
+        prog = store.get_video_progress(video_name, len(reps))
+        progress_html.value = (
+            f"<b>{video_name}</b> — "
+            f"{prog['annotated']}/{prog['total']} reps annotated "
+            f"({prog['progress_pct']:.0f}%)"
+        )
+
+    def refresh_grid() -> None:
+        for i, btn in enumerate(grid_btns):
+            btn.description = f"{_grid_symbol(i)} {i + 1}"
+            btn.button_style = _grid_style(i)
+            btn.disabled = store.is_rep_annotated(video_name, i) and i != state["idx"]
+
+    def set_label_buttons_enabled(enabled: bool) -> None:
+        for btn in label_btns.values():
+            btn.disabled = not enabled
 
     def show_rep() -> None:
         i = state["idx"]
@@ -167,7 +196,7 @@ def annotate_interactively(
 
         with out:
             clear_output(wait=True)
-            show_rep_frames(video_path, start, end)
+            show_rep_frames(video_path, start, end, rotation_cw=rotation_cw)
 
     def on_label(btn: widgets.Button) -> None:
         i = state["idx"]
@@ -208,9 +237,11 @@ def annotate_interactively(
         state["ready_for_next"] = True
         set_label_buttons_enabled(False)
         next_btn.disabled = False
-        status.value = '<span style="color:#2e7d32"><b>Step 2:</b> Press <b>Space</b> or <b>→</b> for next rep.</span>'
         refresh_grid()
         update_progress_header()
+        status.value = (
+            '<span style="color:#2e7d32"><b>Step 2:</b> Press <b>Space</b> or <b>→</b> to advance.</span>'
+        )
 
     def on_next(_: widgets.Button) -> None:
         i = state["idx"]
@@ -247,30 +278,52 @@ def annotate_interactively(
         state["idx"] = nxt
         show_rep()
 
+    def on_grid_click(btn: widgets.Button) -> None:
+        rep_num = int(btn.description.split()[-1]) - 1
+        if store.is_rep_annotated(video_name, rep_num):
+            return
+        state["idx"] = rep_num
+        show_rep()
+
     for btn in label_btns.values():
         btn.on_click(on_label)
     next_btn.on_click(on_next)
+    for btn in grid_btns:
+        btn.on_click(on_grid_click)
 
-    start_idx = first_unannotated() or 0
-    state["idx"] = start_idx
+    label_row = widgets.HBox(list(label_btns.values()))
+    next_row = widgets.HBox([next_btn, status])
 
-    display(
-        widgets.VBox(
-            [
-                cheatsheet,
-                js_widget,
-                attr_injector,
-                progress_html,
-                counter,
-                grid,
-                feedback,
-                status,
-                widgets.HBox(list(label_btns.values())),
-                next_btn,
-                out,
-            ]
-        )
+    ui = widgets.VBox(
+        [
+            progress_html,
+            counter,
+            grid_box,
+            cheatsheet,
+            out,
+            feedback,
+            label_row,
+            next_row,
+        ]
     )
+    display(ui)
+    display(js_widget)
+    display(attr_injector)
+
+    first = first_unannotated()
+    update_progress_header()
+
+    if first is None:
+        feedback.value = (
+            f'<span style="color:#2e7d32"><b>All {len(reps)} reps already annotated '
+            f"for {video_name}.</b></span>"
+        )
+        refresh_grid()
+        if on_complete is not None:
+            on_complete()
+        return
+
+    state["idx"] = first
     show_rep()
 
 
@@ -280,28 +333,31 @@ def build_pending_video_list(
     all_reps: dict[str, list[RepBoundary]],
     store: AnnotationStore,
 ) -> list[tuple[str, str, list[RepBoundary]]]:
-    pending = []
+    """Return only videos that still have unannotated reps."""
+    pending: list[tuple[str, str, list[RepBoundary]]] = []
     for video_name in extracted_data:
         if video_name not in all_reps or not all_reps[video_name]:
             continue
         reps = all_reps[video_name]
         progress = store.get_video_progress(video_name, len(reps))
         if progress["remaining"] > 0:
-            video_path = video_dir / f"{video_name}.mp4"
-            for f in video_dir.iterdir():
-                if f.stem == video_name:
-                    video_path = f
-                    break
+            video_path = resolve_video_path(video_dir, video_name)
+            if video_path is None:
+                print(f"  SKIP {video_name} — video not found in {video_dir}")
+                continue
             pending.append((video_name, str(video_path), reps))
         else:
-            print(f"  ✅ Skipping '{video_name}' — all {len(reps)} reps already annotated")
+            print(f"  done: {video_name} ({len(reps)} reps)")
     return pending
 
 
 def run_annotation_session(
     store: AnnotationStore,
     videos: list[tuple[str, str, list[RepBoundary]]],
+    *,
+    rotation_cw: int = DEFAULT_DISPLAY_ROTATION_CW,
 ) -> None:
+    """Show one video at a time; advances automatically when all reps are done."""
     videos = list(videos)
     session_out = widgets.Output()
     display(session_out)
@@ -323,6 +379,7 @@ def run_annotation_session(
                 video_path=video_path,
                 reps=reps,
                 on_complete=lambda: show_next(remaining[1:]),
+                rotation_cw=rotation_cw,
             )
 
     show_next(videos)

@@ -1,8 +1,14 @@
 from __future__ import annotations
 
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum
+
+from utils.model_profiles import (
+    DEFAULT_MODEL_PROFILES,
+    ModelProfile,
+    ResolvedModelProfile,
+)
 
 class SquatError(Enum):
     CORRECT = 0
@@ -41,7 +47,12 @@ class Config:
     # Extra near-boundary "hard" sequences mixed into training
     hard_negative_fraction: float = 0.12
     pose_noise_scale: float = 0.006
+    enable_train_augmentation: bool = True
     mirror_augment_prob: float = 0.5
+    jitter_augment_prob: float = 0.5
+    time_warp_augment_prob: float = 0.4
+    time_warp_speed_min: float = 0.85
+    time_warp_speed_max: float = 1.15
 
     # Training
     batch_size: int = 32
@@ -60,7 +71,13 @@ class Config:
     transformer_ff_dim: int = 128
     num_transformer_blocks: int = 2
 
+    # Per-model overrides (training + architecture). Keys match ModelFactory names.
+    model_profiles: dict[str, ModelProfile] = field(
+        default_factory=lambda: dict(DEFAULT_MODEL_PROFILES)
+    )
+
     # Paths
+    annotated_data_path: str = './data/annotated/annotated_dataset.npz'
     model_dir: str = './models'
     tflite_dir: str = './tflite_models'
     results_dir: str = './results'
@@ -69,6 +86,11 @@ class Config:
         os.makedirs(self.model_dir, exist_ok=True)
         os.makedirs(self.tflite_dir, exist_ok=True)
         os.makedirs(self.results_dir, exist_ok=True)
+
+    def get_model_profile(self, model_name: str) -> ResolvedModelProfile:
+        """Resolve global defaults merged with per-model overrides."""
+        overrides = self.model_profiles.get(model_name)
+        return ResolvedModelProfile.resolve(self, overrides)
 
 
 @dataclass

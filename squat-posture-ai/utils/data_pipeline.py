@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+from pathlib import Path
 from typing import Dict, Tuple
 
 import numpy as np
@@ -57,25 +59,16 @@ class DataPipeline:
 
         return splits
 
-
-splits = pipeline.split_data(feature_sequences, labels, error_vectors)
-splits = pipeline.normalize_sequences(splits)
-
-
-
-print(f"Train: {splits['X_train'].shape[0]} samples")
-print(f"Val:   {splits['X_val'].shape[0]} samples")
-print(f"Test:  {splits['X_test'].shape[0]} samples")
-print(f"Input shape: {splits['X_train'].shape[1:]}")
-
-# Export scaler for React Native (src/assets/models/feature_scaler.json)
-import json
-scaler_export = {
-    "mean": pipeline.scaler.mean_.tolist(),
-    "scale": pipeline.scaler.scale_.tolist(),
-    "sequence_length": cfg.sequence_length,
-    "features_per_frame": cfg.num_engineered_features,
-}
-with open(f"{cfg.results_dir}/feature_scaler.json", "w") as f:
-    json.dump(scaler_export, f, indent=2)
-print(f"Scaler exported → {cfg.results_dir}/feature_scaler.json (copy to app assets after retrain)")
+    def export_feature_scaler(self, output_path: str | Path) -> Path:
+        """Export fitted StandardScaler for mobile inference."""
+        output_path = Path(output_path)
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        scaler_export = {
+            "mean": self.scaler.mean_.tolist(),
+            "scale": self.scaler.scale_.tolist(),
+            "sequence_length": self.cfg.sequence_length,
+            "features_per_frame": self.cfg.num_engineered_features,
+        }
+        with open(output_path, "w", encoding="utf-8") as f:
+            json.dump(scaler_export, f, indent=2)
+        return output_path
