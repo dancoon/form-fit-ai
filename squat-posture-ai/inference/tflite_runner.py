@@ -28,16 +28,3 @@ def verify_tflite_accuracy(tflite_path: str, X_test: np.ndarray,
     acc = accuracy_score(y_test[:len(preds_binary)], preds_binary)
 
     return {'model_name': model_name, 'tflite_accuracy': acc}
-
-
-# Verify a subset
-print("\nVerifying TFLite model accuracy...")
-tflite_accuracy_results = []
-for result in tflite_converter.conversion_results:
-    if result['success'] and not result.get('quantized', False):
-        acc_result = verify_tflite_accuracy(
-            result['filepath'], splits['X_test'],
-            splits['y_test'], result['model_name']
-        )
-        tflite_accuracy_results.append(acc_result)
-        print(f"  {result['model_name']}: TFLite accuracy = {acc_result['tflite_accuracy']:.4f}")

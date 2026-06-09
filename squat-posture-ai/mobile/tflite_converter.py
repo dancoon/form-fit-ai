@@ -17,19 +17,44 @@ class TFLiteConverter:
         self.cfg = config
         self.conversion_results = {}
 
+    def _make_converter(self, model: Model, *, quantize: bool,
+                        use_select_tf_ops: bool) -> tf.lite.TFLiteConverter:
+        converter = tf.lite.TFLiteConverter.from_keras_model(model)
+        if use_select_tf_ops:
+            converter.target_spec.supported_ops = [
+                tf.lite.OpsSet.TFLITE_BUILTINS,
+                tf.lite.OpsSet.SELECT_TF_OPS,
+            ]
+            converter._experimental_lower_tensor_list_ops = False
+        if quantize:
+            converter.optimizations = [tf.lite.Optimize.DEFAULT]
+            converter.target_spec.supported_types = [tf.float16]
+        return converter
+
     def convert_model(self, model: Model, model_name: str,
                       quantize: bool = False) -> Dict:
         """Convert Keras model to TFLite with optional quantization."""
         result = {'model_name': model_name, 'success': False}
 
         try:
-            converter = tf.lite.TFLiteConverter.from_keras_model(model)
+            tflite_model = None
+            last_error = None
+            for use_select_tf_ops in (False, True):
+                try:
+                    converter = self._make_converter(
+                        model,
+                        quantize=quantize,
+                        use_select_tf_ops=use_select_tf_ops,
+                    )
+                    tflite_model = converter.convert()
+                    break
+                except Exception as exc:
+                    last_error = exc
+                    if use_select_tf_ops:
+                        raise
 
-            if quantize:
-                converter.optimizations = [tf.lite.Optimize.DEFAULT]
-                converter.target_spec.supported_types = [tf.float16]
-
-            tflite_model = converter.convert()
+            if tflite_model is None:
+                raise last_error or RuntimeError("TFLite conversion failed")
 
             # Save
             suffix = '_quantized' if quantize else ''
@@ -93,7 +118,7 @@ class TFLiteConverter:
             results.append(result)
 
             # Quantized conversion
-            result_q = self.convert_model(model, f"{name}_quantized", quantize=True)
+            result_q = self.convert_model(model, name, quantize=True)
             if result_q['success']:
                 print(f"    Quantized: {result_q['size_mb']:.2f}MB, "
                       f"{result_q['latency_ms']:.2f}ms, {result_q['fps']:.0f}FPS")
@@ -109,6 +134,3 @@ class TFLiteConverter:
             print(df[display_cols].to_string(index=False))
 
         return df
-
-
-tflite_df = tflite_converter.convert_all(trainer.trained_models)

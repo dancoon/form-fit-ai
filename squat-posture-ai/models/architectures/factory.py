@@ -34,6 +34,14 @@ class ModelFactory:
         self._profile = self.cfg.get_model_profile(model_name)
         return self._profile
 
+    def _gru(self, units: int, *, return_sequences: bool = False) -> layers.GRU:
+        """GRU with unrolled time steps for TFLite-friendly export (seq len is fixed)."""
+        return layers.GRU(
+            units,
+            return_sequences=return_sequences,
+            unroll=True,
+        )
+
     def _add_output_heads(self, x: tf.Tensor,
                           inputs: tf.Tensor) -> Model:
         """Add multi-task output heads to any backbone."""
@@ -76,9 +84,9 @@ class ModelFactory:
     def build_gru(self) -> Model:
         """Lightweight GRU optimized for mobile deployment."""
         inputs = layers.Input(shape=self.input_shape, name='input')
-        x = layers.GRU(self.p.hidden_units, return_sequences=True)(inputs)
+        x = self._gru(self.p.hidden_units, return_sequences=True)(inputs)
         x = layers.Dropout(self.p.dropout_rate)(x)
-        x = layers.GRU(self.p.hidden_units // 2)(x)
+        x = self._gru(self.p.hidden_units // 2)(x)
         x = layers.BatchNormalization()(x)
         return self._add_output_heads(x, inputs)
 
@@ -86,11 +94,11 @@ class ModelFactory:
         """Bidirectional GRU with reduced parameter count."""
         inputs = layers.Input(shape=self.input_shape, name='input')
         x = layers.Bidirectional(
-            layers.GRU(self.p.hidden_units, return_sequences=True)
+            self._gru(self.p.hidden_units, return_sequences=True)
         )(inputs)
         x = layers.Dropout(self.p.dropout_rate)(x)
         x = layers.Bidirectional(
-            layers.GRU(self.p.hidden_units // 2)
+            self._gru(self.p.hidden_units // 2)
         )(x)
         x = layers.BatchNormalization()(x)
         return self._add_output_heads(x, inputs)
@@ -233,7 +241,7 @@ class ModelFactory:
 
         # BiGRU
         x = layers.Bidirectional(
-            layers.GRU(self.p.hidden_units, return_sequences=True)
+            self._gru(self.p.hidden_units, return_sequences=True)
         )(x)
 
         # Attention
@@ -254,7 +262,7 @@ class ModelFactory:
 
         # BiGRU encoder
         x = layers.Bidirectional(
-            layers.GRU(self.p.hidden_units, return_sequences=True)
+            self._gru(self.p.hidden_units, return_sequences=True)
         )(inputs)
         x = layers.Dropout(self.p.dropout_rate)(x)
 

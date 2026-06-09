@@ -6,7 +6,7 @@ import {
   type TfliteModel,
 } from "react-native-fast-tflite";
 
-const SQUAT_MODEL_MODULE = require("@/assets/models/tcn_quantized_quantized.tflite");
+const SQUAT_MODEL_MODULE = require("@/assets/models/squat_model.tflite");
 
 function toLoadableUrl(uri: string): string {
   if (

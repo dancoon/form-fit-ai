@@ -37,7 +37,7 @@ def main():
     evaluator = EvaluationPipeline(cfg)
     metrics = evaluator.evaluate_all(dl_results, baseline_results, splits)
     evaluator.print_comparison_table()
-    print('Pipeline complete. Export TFLite via mobile/tflite_converter.py')
+    print('Pipeline complete. Export BiGRU: python export_model.py --model BiGRU')
     return metrics
 
 
