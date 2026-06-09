@@ -1,14 +1,5 @@
 import { FEEDBACK } from "@/constants/feedbackStrings";
 import type { SquatErrorKey } from "@/lib/squat/constants";
-
-const MODEL_ERROR_FEEDBACK: ReadonlyArray<{
-  key: SquatErrorKey;
-  message: string;
-}> = [
-  { key: "knee_valgus", message: FEEDBACK.kneeValgus },
-  { key: "insufficient_depth", message: FEEDBACK.insufficientDepth },
-  { key: "forward_lean", message: FEEDBACK.forwardLean },
-];
 import {
   phaseLabel,
   type RepTrackerSnapshot,
@@ -23,6 +14,15 @@ import type {
   SquatInferenceResult,
   SquatPrediction,
 } from "@/lib/squat/squatTypes";
+
+const MODEL_ERROR_FEEDBACK: ReadonlyArray<{
+  key: SquatErrorKey;
+  message: string;
+}> = [
+  { key: "knee_valgus", message: FEEDBACK.kneeValgus },
+  { key: "insufficient_depth", message: FEEDBACK.insufficientDepth },
+  { key: "forward_lean", message: FEEDBACK.forwardLean },
+];
 
 export function buildModelFeedback(
   prediction: SquatPrediction,
@@ -91,7 +91,7 @@ export function buildTrackerFeedback(input: TrackerFeedbackInput): string {
   if (!tracker) return "";
 
   if (!tracker.calibrationRequested) {
-    return FEEDBACK.tapToCalibrate;
+    return FEEDBACK.holdStillToCalibrate;
   }
   if (!tracker.calibrated) {
     return activeViewAngle === "front"

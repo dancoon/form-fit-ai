@@ -34,6 +34,8 @@ interface WorkoutCameraProps {
   onPoseDetected?: (hasPose: boolean) => void;
   onPoseError?: (message: string) => void;
   onPoseFrame?: (rawLandmarks: Float32Array) => void;
+  /** Fired after the view-mapped landmark buffer is written (or cleared). */
+  onLandmarksUpdated?: () => void;
 }
 
 export function WorkoutCamera({
@@ -44,6 +46,7 @@ export function WorkoutCamera({
   onPoseDetected,
   onPoseError,
   onPoseFrame,
+  onLandmarksUpdated,
 }: WorkoutCameraProps) {
   const viewDimsRef = useRef({ width: 1, height: 1 });
   const poseActiveRef = useRef(false);
@@ -68,6 +71,7 @@ export function WorkoutCamera({
       if (!pose?.length || viewWidth <= 1 || viewHeight <= 1) {
         clearLandmarksBuffer(landmarksBuffer);
         notifyPoseDetected(false);
+        onLandmarksUpdated?.();
         return;
       }
 
@@ -82,13 +86,24 @@ export function WorkoutCamera({
       );
       onPoseFrame?.(writeRawLandmarksToBuffer(pose, rawLandmarksBuffer));
       notifyPoseDetected(true);
+      onLandmarksUpdated?.();
 
       if (__DEV__) {
         const ms = performance.now() - t0;
-        if (ms > 20) devLog(`[pose] frame handler ${ms.toFixed(1)}ms`);
+        if (ms > 25) {
+          devLog(
+            `[pose] frame handler ${ms.toFixed(1)}ms — MediaPipe bound; overlay tweaks won't help`,
+          );
+        }
       }
     },
-    [landmarksBuffer, rawLandmarksBuffer, notifyPoseDetected, onPoseFrame],
+    [
+      landmarksBuffer,
+      rawLandmarksBuffer,
+      notifyPoseDetected,
+      onPoseFrame,
+      onLandmarksUpdated,
+    ],
   );
 
   const poseDetection = usePoseDetection(

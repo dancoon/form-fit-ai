@@ -5,4 +5,5 @@ export {
   MODEL_LOAD_RETRIES,
 } from "@/hooks/squatModelLoad";
 export { useWorkoutRepEffects } from "@/hooks/useWorkoutRepEffects";
+export { useVocalFeedback, speakFeedback } from "@/hooks/useVocalFeedback";
 export { useRenderLoop } from "@/hooks/useRenderLoop";

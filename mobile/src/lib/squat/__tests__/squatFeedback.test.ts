@@ -33,7 +33,7 @@ function minimalTracker(
 }
 
 describe("buildTrackerFeedback", () => {
-  test("prompts to calibrate when not requested", () => {
+  test("prompts to hold still when auto-calibration not started", () => {
     const msg = buildTrackerFeedback({
       tracker: minimalTracker(),
       result: null,
@@ -41,7 +41,7 @@ describe("buildTrackerFeedback", () => {
       repCountOnlyMode: false,
       activeViewAngle: "side",
     });
-    expect(msg).toBe(FEEDBACK.tapToCalibrate);
+    expect(msg).toBe(FEEDBACK.holdStillToCalibrate);
   });
 
   test("side vs front calibration copy", () => {
@@ -99,6 +99,6 @@ describe("formatSquatFeedback", () => {
         forward_lean: 0.1,
       },
     });
-    expect(msg).toContain("Knees caving inward");
+    expect(msg).toContain(FEEDBACK.kneeValgus);
   });
 });

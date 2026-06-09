@@ -90,6 +90,8 @@ export class SquatRepTracker {
   private calibrationSamples: number[] = [];
   private calibrated = false;
   private calibrationRequested = false;
+  private stablePoseFrames = 0;
+  private prevStabilityPrimary: number | null = null;
 
   private repMinPrimary = Number.POSITIVE_INFINITY;
   private activeRepFrames: Float32Array[] = [];
@@ -114,6 +116,7 @@ export class SquatRepTracker {
     this.calibrationSamples = [];
     this.calibrated = false;
     this.standingBaseline = null;
+    this.resetStablePoseDetection();
   }
 
   reset(): void {
@@ -126,6 +129,7 @@ export class SquatRepTracker {
     this.calibrationSamples = [];
     this.calibrated = false;
     this.calibrationRequested = false;
+    this.resetStablePoseDetection();
     this.repMinPrimary = Number.POSITIVE_INFINITY;
     this.activeRepFrames = [];
     this.sawBottom = false;
@@ -175,6 +179,46 @@ export class SquatRepTracker {
     if (rawPrimary <= r.adequateDepth) return true;
     if (!this.standingBaseline) return false;
     return this.descentFromStand(rawPrimary) >= r.minDescentFromStand * 0.85;
+  }
+
+  private resetStablePoseDetection(): void {
+    this.stablePoseFrames = 0;
+    this.prevStabilityPrimary = null;
+  }
+
+  private isStandingLegAngle(legAngle: number): boolean {
+    const r = this.rep();
+    return legAngle >= r.standingLegMin && legAngle <= r.standingLegMax;
+  }
+
+  /** Auto-start calibration after a short stable standing window. */
+  private tryAutoRequestCalibration(
+    rawPrimary: number,
+    kneeAngle: number,
+  ): void {
+    if (this.calibrated || this.calibrationRequested) return;
+
+    const r = this.rep();
+    if (!this.isStandingLegAngle(kneeAngle)) {
+      this.resetStablePoseDetection();
+      return;
+    }
+
+    if (this.prevStabilityPrimary != null) {
+      const delta = Math.abs(rawPrimary - this.prevStabilityPrimary);
+      if (delta > r.autoCalibrationMaxPrimaryDelta) {
+        this.resetStablePoseDetection();
+        this.prevStabilityPrimary = rawPrimary;
+        return;
+      }
+    }
+
+    this.prevStabilityPrimary = rawPrimary;
+    this.stablePoseFrames += 1;
+
+    if (this.stablePoseFrames >= r.autoCalibrationStabilityFrames) {
+      this.requestCalibration();
+    }
   }
 
   private observeStanding(primary: number, legAngle: number): void {
@@ -254,6 +298,9 @@ export class SquatRepTracker {
   }
 
   notifyPoseLost(): RepTrackerSnapshot | null {
+    if (!this.calibrated) {
+      this.resetStablePoseDetection();
+    }
     if (this.stage !== "down") return null;
     this.poseLostFrames += 1;
     if (this.poseLostFrames >= this.rep().poseLostCancelFrames) {
@@ -283,6 +330,8 @@ export class SquatRepTracker {
     const primaryDelta =
       this.smoothedPrimary - (this.prevSmoothedPrimary ?? rawPrimary);
     const smoothed = this.smoothedPrimary;
+
+    this.tryAutoRequestCalibration(rawPrimary, kneeAngle);
 
     if (!this.calibrated && this.calibrationRequested) {
       this.observeStanding(rawPrimary, kneeAngle);

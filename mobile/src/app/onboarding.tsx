@@ -14,7 +14,7 @@ const STEPS = [
   },
   {
     title: "Calibrate & squat",
-    body: "Tap when ready to calibrate standing pose, then perform controlled squats.",
+    body: "Stand tall in frame to calibrate automatically, then perform controlled squats.",
   },
 ];
 

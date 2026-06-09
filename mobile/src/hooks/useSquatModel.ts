@@ -81,7 +81,9 @@ export function useSquatModel(enabled: boolean, repCountOnlyMode: boolean) {
   }, [enabled, repCountOnlyMode]);
 
   const modelReady =
-    loadState.status === "loaded" || loadState.status === "rep_count_only";
+    loadState.status === "loaded" ||
+    loadState.status === "rep_count_only" ||
+    loadState.status === "error";
   const modelLoading = enabled && loadState.status === "loading";
   const modelError =
     loadState.status === "error" ? loadState.error.message : null;

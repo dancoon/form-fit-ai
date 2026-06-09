@@ -45,7 +45,7 @@ function stepHint(status: WorkoutPipelineStatus): string | null {
   if (status.poseTrackingEnabled && !status.poseDetected)
     return "Move back until head and feet are visible";
   if (status.poseDetected && !status.calibrationRequested)
-    return "Tap Calibrate when standing tall with straight legs";
+    return "Stand tall with straight legs — calibrating automatically";
   if (status.calibrationRequested && !status.calibrated)
     return "Hold still — side view works best";
   return null;
@@ -116,7 +116,7 @@ function WorkoutStatusPanelInner({ status }: WorkoutStatusPanelProps) {
     else if (modelLoading) headline = "Loading form model…";
     else if (!poseDetected) headline = "Step into frame — full body visible";
     else if (!modelReady) headline = "Waiting for model…";
-    else if (!calibrationRequested) headline = "Tap Calibrate when ready";
+    else if (!calibrationRequested) headline = "Hold still to start calibration";
     else if (!calibrated) headline = "Hold still to calibrate standing pose";
     else if (isSquatting) headline = `${phaseLabel} (${repPct}%)`;
     else if (result) {
@@ -162,14 +162,16 @@ function WorkoutStatusPanelInner({ status }: WorkoutStatusPanelProps) {
         {(severity * 100).toFixed(0)}%
       </Text>
 
-      {!calibrated && poseDetected && modelReady && onCalibratePress ? (
+      {poseDetected && modelReady && onCalibratePress ? (
         <Text
           onPress={onCalibratePress}
           className="mb-2 font-bold text-sm text-yellow-400 underline"
           accessibilityRole="button"
-          accessibilityLabel="Calibrate standing pose"
+          accessibilityLabel={
+            calibrated ? "Recalibrate standing pose" : "Calibrate now"
+          }
         >
-          Calibrate now
+          {calibrated ? "Recalibrate" : "Calibrate now"}
         </Text>
       ) : null}
 

@@ -1,24 +1,40 @@
 /** User-facing feedback copy (future i18n entry point). */
 export const FEEDBACK = {
-  greatDepth: "Awesome depth",
-  goLower: "Go a bit lower",
-  controlDescent: "Control the descent",
-  driveUp: "Drive up through your heels",
-  chestUp: "Chest up — finish strong",
+  greatDepth: "Perfect depth!",
+  goLower: "Just a little deeper",
+  controlDescent: "Nice and controlled on the way down",
+  driveUp: "Drive through your heels",
+  chestUp: "Keep your chest proud",
+
   standSideways:
-    "Side view: stand sideways · full body in frame · 6–8 ft back. Front view: face the camera with feet hip-width.",
-  tapToCalibrate: "Tap when ready to calibrate standing pose",
+    "Stand sideways with your full body in view. For a front view, face the camera with your feet hip-width apart.",
+
+  holdStillToCalibrate:
+    "Stand tall with straight legs — we'll calibrate automatically",
+
   calibrateSide:
-    "Hold still with straight legs to calibrate (side view works best)",
-  calibrateFront: "Hold still facing the camera with straight legs",
-  calibratedReady: "Calibrated — begin your squat when ready",
-  descentDetected: "Descent detected — keep going",
-  repComplete: (n: number) => `Rep ${n} complete — squat again when ready`,
-  repCountOnly: "Form model unavailable — rep counting only",
-  kneeValgus: "Knees caving inward — push knees out",
-  insufficientDepth: "Go deeper — aim for parallel",
-  forwardLean: "Too much forward lean — chest up",
-  goodForm: (pct: number) => `Good form (${pct}% confidence)`,
+    "Stand tall and hold still for a moment while we calibrate.",
+
+  calibrateFront:
+    "Face the camera, stand tall, and hold still while we calibrate.",
+
+  calibratedReady: "All set! Start squatting when you're ready.",
+
+  descentDetected: "Good start — keep going",
+
+  repComplete: (n: number) =>
+    `Great rep! That's ${n}${n === 1 ? "" : ""}. Keep it up!`,
+
+  repCountOnly:
+    "We're counting reps, but form feedback is temporarily unavailable.",
+
+  kneeValgus: "Push your knees out slightly",
+  insufficientDepth: "Almost there — go a bit deeper",
+  forwardLean: "Stay tall and keep your chest up",
+
+  goodForm: (pct: number) =>
+    `Excellent form! (${pct}% confidence)`,
+
   formNeedsImprovement: (pct: number) =>
-    `Form needs improvement (${pct}% flagged)`,
+    `Good effort. Let's clean up a few things (${pct}% flagged).`,
 } as const;

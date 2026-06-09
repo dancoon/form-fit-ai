@@ -1,14 +1,12 @@
 import { useCallback, useEffect, useRef } from "react";
 
 /**
- * useRenderLoop
+ * Optional rAF loop for animations (e.g. error glow pulse).
+ * Pose-driven overlays should call `requestRender` directly instead.
  *
- * Manages the high-performance requestAnimationFrame loop for WebGL rendering.
- * Implements 30 FPS frame throttling to optimize mobile thermal budget.
- *
- * @param callback The function to execute on every frame (33.33ms target).
+ * @param enabled When false, no rAF is scheduled.
  */
-export const useRenderLoop = (callback: () => void) => {
+export const useRenderLoop = (callback: () => void, enabled = true) => {
   const requestRef = useRef<number>(0);
   const lastFrameTime = useRef<number>(0);
 
@@ -16,7 +14,7 @@ export const useRenderLoop = (callback: () => void) => {
     (time: number) => {
       const deltaTime = time - lastFrameTime.current;
 
-      // Target 30 FPS (1000ms / 30 = 33.33ms)
+      // Target 30 FPS for glow pulse — thermal budget
       if (deltaTime >= 33.33) {
         callback();
         lastFrameTime.current = time;
@@ -28,7 +26,8 @@ export const useRenderLoop = (callback: () => void) => {
   );
 
   useEffect(() => {
+    if (!enabled) return;
     requestRef.current = requestAnimationFrame(animate);
     return () => cancelAnimationFrame(requestRef.current);
-  }, [animate]);
+  }, [animate, enabled]);
 };

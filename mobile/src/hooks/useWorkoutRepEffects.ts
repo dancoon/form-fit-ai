@@ -1,5 +1,4 @@
 import * as Haptics from "expo-haptics";
-import * as Speech from "expo-speech";
 import { useEffect, useRef } from "react";
 import type { SquatInferenceResult } from "@/lib/squat/squatTypes";
 
@@ -7,7 +6,6 @@ export interface UseWorkoutRepEffectsParams {
   repCount: number;
   repMinHipKneeAngle: number | null;
   result: SquatInferenceResult | null;
-  vocalFeedback: boolean;
   hapticFeedback: boolean;
   targetReps: number | null | undefined;
   restSecondsRemaining: number | null;
@@ -24,13 +22,12 @@ export interface UseWorkoutRepEffectsParams {
 }
 
 /**
- * Side effects for rep completion: session storage, speech, haptics, rest timer.
+ * Side effects for rep completion: session storage, haptics, rest timer.
  */
 export function useWorkoutRepEffects({
   repCount,
   repMinHipKneeAngle,
   result,
-  vocalFeedback,
   hapticFeedback,
   targetReps,
   restSecondsRemaining,
@@ -41,7 +38,6 @@ export function useWorkoutRepEffects({
 }: UseWorkoutRepEffectsParams) {
   const lastProcessedRep = useRef(0);
   const lastInferenceRep = useRef(0);
-  const lastSpokenRep = useRef(0);
   const lastHapticRep = useRef(0);
 
   useEffect(() => {
@@ -74,14 +70,6 @@ export function useWorkoutRepEffects({
   }, [result, recordRep, repMinHipKneeAngle, onRepInferenceComplete]);
 
   useEffect(() => {
-    if (!vocalFeedback || !result?.feedback) return;
-    if (result.repNumber <= lastSpokenRep.current) return;
-    lastSpokenRep.current = result.repNumber;
-    Speech.stop();
-    Speech.speak(result.feedback, { rate: 1.0, pitch: 1.0 });
-  }, [result, vocalFeedback]);
-
-  useEffect(() => {
     if (!hapticFeedback || !result) return;
     if (result.repNumber <= lastHapticRep.current) return;
     lastHapticRep.current = result.repNumber;
@@ -95,7 +83,6 @@ export function useWorkoutRepEffects({
   const resetRepEffectRefs = () => {
     lastProcessedRep.current = 0;
     lastInferenceRep.current = 0;
-    lastSpokenRep.current = 0;
     lastHapticRep.current = 0;
   };
 

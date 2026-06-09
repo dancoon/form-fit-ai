@@ -4,7 +4,10 @@ import { Text, TouchableOpacity, View } from "react-native";
 import { BodyOutlineGuide } from "@/components/BodyOutlineGuide";
 import { CameraSetupGuide } from "@/components/CameraSetupGuide";
 import { RepSummaryCard } from "@/components/RepSummaryCard";
-import { WebGLOverlay } from "@/components/WebGLOverlay";
+import {
+  WebGLOverlay,
+  type WebGLOverlayHandle,
+} from "@/components/WebGLOverlay";
 import {
   createLandmarksBuffer,
   createRawLandmarksBuffer,
@@ -15,7 +18,13 @@ import { WorkoutCameraPreview } from "@/components/WorkoutCameraPreview";
 import { WorkoutStatusPanel } from "@/components/WorkoutStatusPanel";
 import { useAppSettings } from "@/context/AppSettingsContext";
 import { useWorkoutSession } from "@/context/WorkoutSessionContext";
-import { useSquatAnalysis, useWorkoutRepEffects } from "@/hooks";
+import { FEEDBACK } from "@/constants/feedbackStrings";
+import {
+  speakFeedback,
+  useSquatAnalysis,
+  useVocalFeedback,
+  useWorkoutRepEffects,
+} from "@/hooks";
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -26,6 +35,7 @@ export default function HomeScreen() {
   const { hasPermission, requestPermission } = useWorkoutCameraPermission();
   const landmarksBuffer = useRef(createLandmarksBuffer());
   const rawLandmarksBuffer = useRef(createRawLandmarksBuffer());
+  const overlayRef = useRef<WebGLOverlayHandle>(null);
   const [poseTrackingEnabled, setPoseTrackingEnabled] = useState(false);
   const [poseDetected, setPoseDetected] = useState(false);
   const [poseError, setPoseError] = useState<string | null>(null);
@@ -133,11 +143,17 @@ export default function HomeScreen() {
     ],
   );
 
+  useVocalFeedback(feedback, vocalFeedback && poseTrackingEnabled);
+
+  useEffect(() => {
+    if (!showCameraGuide || !vocalFeedback) return;
+    speakFeedback(FEEDBACK.standSideways);
+  }, [showCameraGuide, vocalFeedback]);
+
   const { resetRepEffectRefs } = useWorkoutRepEffects({
     repCount,
     repMinHipKneeAngle,
     result,
-    vocalFeedback,
     hapticFeedback,
     targetReps: session?.targetReps,
     restSecondsRemaining,
@@ -184,6 +200,10 @@ export default function HomeScreen() {
     },
     [onPoseLost],
   );
+
+  const handleLandmarksUpdated = useCallback(() => {
+    overlayRef.current?.requestRender();
+  }, []);
 
   const dismissCameraGuide = async () => {
     setShowCameraGuide(false);
@@ -248,6 +268,7 @@ export default function HomeScreen() {
             onPoseDetected={handlePoseDetected}
             onPoseError={setPoseError}
             onPoseFrame={onPoseFrame}
+            onLandmarksUpdated={handleLandmarksUpdated}
           />
         ) : (
           <WorkoutCameraPreview />
@@ -256,16 +277,13 @@ export default function HomeScreen() {
         {poseTrackingEnabled ? (
           <>
             <WebGLOverlay
+              ref={overlayRef}
               uLandmarks={landmarksBuffer.current}
               uSeverity={overlaySeverity}
               poseActive={poseDetected}
             />
             <BodyOutlineGuide
-              visible={
-                poseDetected &&
-                !calibrated &&
-                calibrationRequested
-              }
+              visible={poseDetected && !calibrated}
             />
           </>
         ) : null}
@@ -303,7 +321,7 @@ export default function HomeScreen() {
                   ? "READY"
                   : calibrationRequested
                     ? "CALIBRATING"
-                    : "SET POSE"}
+                    : "HOLD STILL"}
             </Text>
           </View>
         ) : null}

@@ -16,6 +16,10 @@ export interface RepThresholds {
   /** Primary metric at adequate depth (same units as downAngle). */
   adequateDepth: number;
   calibrationFrames: number;
+  /** Consecutive stable standing frames before auto-requesting calibration. */
+  autoCalibrationStabilityFrames: number;
+  /** Max primary-metric change (°) per frame while waiting to auto-calibrate. */
+  autoCalibrationMaxPrimaryDelta: number;
   thighSmoothAlpha: number;
   standingLegMin: number;
   standingLegMax: number;
@@ -52,6 +56,8 @@ const SIDE_REP: RepThresholds = {
   upAngle: 150,
   adequateDepth: 95,
   calibrationFrames: 10,
+  autoCalibrationStabilityFrames: 12,
+  autoCalibrationMaxPrimaryDelta: 2.5,
   thighSmoothAlpha: 0.6,
   standingLegMin: 167,
   standingLegMax: 180,
@@ -67,6 +73,8 @@ const FRONT_REP: RepThresholds = {
   upAngle: 150,
   adequateDepth: 95,
   calibrationFrames: 10,
+  autoCalibrationStabilityFrames: 12,
+  autoCalibrationMaxPrimaryDelta: 2.5,
   thighSmoothAlpha: 0.6,
   standingLegMin: 160,
   standingLegMax: 180,

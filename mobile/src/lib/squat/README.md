@@ -3,8 +3,11 @@
 Pure TS — rep tracking, features, TFLite inference.
 
 ```
-pose frame → SquatRepTracker → [rep done] → SquatInferencePipeline → feedback
+pose frame → SquatRepTracker ─┬─ live: getLiveFormCue → buildTrackerFeedback → UI/voice
+                              └─ rep done: resample(45) → SquatInferencePipeline → buildModelFeedback
 ```
+
+Live coaching (heuristics, every frame) and rep-level inference (TFLite, on rep complete) are separate loops. `buildTrackerFeedback` merges both for the status line.
 
 | File | Role |
 |------|------|

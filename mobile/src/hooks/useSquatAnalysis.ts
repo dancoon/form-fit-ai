@@ -45,10 +45,9 @@ export function useSquatAnalysis(enabled: boolean) {
   const pipelineRef = useRef(new SquatInferencePipeline({ runtimeConfig }));
   const trackerLatestRef = useRef<RepTrackerSnapshot | null>(null);
   const inferenceBusyRef = useRef(false);
-  const pendingRepRef = useRef<{
-    window: Float32Array[];
-    snapshot: RepTrackerSnapshot;
-  } | null>(null);
+  const pendingRepsRef = useRef<
+    Array<{ window: Float32Array[]; snapshot: RepTrackerSnapshot }>
+  >([]);
   const wasSquattingRef = useRef(false);
   const lastLiveCueRef = useRef<string>("");
 
@@ -96,6 +95,7 @@ export function useSquatAnalysis(enabled: boolean) {
       pipelineRef.current.reset();
       viewVoterRef.current.reset();
       trackerLatestRef.current = null;
+      pendingRepsRef.current = [];
       setResult(null);
       setTracker(null);
       setLiveCue("");
@@ -136,11 +136,14 @@ export function useSquatAnalysis(enabled: boolean) {
         degradeToRepCountOnly();
       } finally {
         inferenceBusyRef.current = false;
-        const pending = pendingRepRef.current;
-        pendingRepRef.current = null;
         const m = modelRef.current;
-        if (pending && m) {
-          void runInference(m, pending.window, pending.snapshot);
+        if (!m) {
+          pendingRepsRef.current = [];
+          return;
+        }
+        const next = pendingRepsRef.current.shift();
+        if (next) {
+          void runInference(m, next.window, next.snapshot);
         }
       }
     },
@@ -197,7 +200,7 @@ export function useSquatAnalysis(enabled: boolean) {
       const model = modelRef.current;
       if (!model) return;
       if (inferenceBusyRef.current) {
-        pendingRepRef.current = { window: repWindow, snapshot };
+        pendingRepsRef.current.push({ window: repWindow, snapshot });
         return;
       }
       void runInference(model, repWindow, snapshot);
@@ -231,7 +234,7 @@ export function useSquatAnalysis(enabled: boolean) {
   const feedback = useMemo(
     () =>
       buildTrackerFeedback({
-        tracker: tracker ?? trackerLatestRef.current,
+        tracker: trackerLatestRef.current,
         result,
         liveCue,
         repCountOnlyMode: repCountOnly,
@@ -251,6 +254,7 @@ export function useSquatAnalysis(enabled: boolean) {
     pipelineRef.current.reset();
     viewVoterRef.current.reset();
     trackerLatestRef.current = null;
+    pendingRepsRef.current = [];
     setResult(null);
     setTracker(null);
     setLiveCue("");

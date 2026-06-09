@@ -1,8 +1,25 @@
 import { type ExpoWebGLRenderingContext, GLView } from "expo-gl";
 import type React from "react";
-import { memo, useCallback, useRef } from "react";
+import {
+  forwardRef,
+  memo,
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useMemo,
+  useRef,
+} from "react";
 import { useWindowDimensions } from "react-native";
 import { useRenderLoop } from "@/hooks/useRenderLoop";
+
+/** Skeleton pass resolution — upscaled with linear filtering on blit. */
+const OVERLAY_RENDER_SCALE = 0.5;
+
+const GLOW_SEVERITY_EPS = 0.001;
+
+export interface WebGLOverlayHandle {
+  requestRender: () => void;
+}
 
 interface WebGLOverlayProps {
   uLandmarks: Float32Array;
@@ -22,18 +39,18 @@ const VERTEX_SHADER = `#version 300 es
 `;
 
 const FRAGMENT_SHADER = `#version 300 es
-  precision highp float;
+  precision mediump float;
 
   uniform vec2 uLandmarks[33];
   uniform float uSeverity[4];
   uniform vec2 uResolution;
   uniform float uTime;
   uniform float uPoseActive;
+  uniform float uGlowEnabled;
 
   in vec2 vTexCoord;
   out vec4 fragColor;
 
-  // KnownPoseLandmarkConnections — MediaPipe default skeleton topology
   const int CONN_COUNT = 30;
   const int CONN_A[30] = int[30](
     0, 5, 0, 2, 9,
@@ -105,7 +122,6 @@ const FRAGMENT_SHADER = `#version 300 es
     const vec3 skeletonColor = vec3(1.0);
     const float lineHalfWidth = 0.0038;
 
-    // White skeleton lines (MediaPipe default style)
     for (int c = 0; c < CONN_COUNT; c++) {
       float lineAlpha = drawLine(
         st,
@@ -120,7 +136,6 @@ const FRAGMENT_SHADER = `#version 300 es
       }
     }
 
-    // Hollow white joint rings
     for (int i = 0; i < 33; i++) {
       float ringAlpha = drawHollowJoint(
         st,
@@ -134,22 +149,23 @@ const FRAGMENT_SHADER = `#version 300 es
         finalAlpha = max(finalAlpha, ringAlpha * 0.98);
       }
 
-      // Form-error glow when severity slider is raised
-      float severity = jointSeverity(i);
-      if (severity > 0.0) {
-        vec2 diff = toAspect(st - uLandmarks[i], aspect);
-        float d = length(diff);
-        float correctedS = pow(severity, 1.0 / 2.2);
-        float radius = mix(0.05, 0.15, correctedS);
-        float distNormalized = d / radius;
-        float core = pow(1.0 - smoothstep(0.0, 0.4, distNormalized), 2.0);
-        float glow = pow(1.0 - distNormalized, 1.5);
-        float pulse = 0.7 + 0.3 * sin(uTime * 8.0 + float(i) * 0.5);
-        float alpha = mix(0.5, 0.9, correctedS) * (core * 0.8 + glow * 0.4) * pulse;
-        vec3 color = mix(vec3(0.5, 1.0, 0.0), vec3(1.0, 0.1, 0.1), correctedS);
-        color *= (1.0 + correctedS * 0.5);
-        finalColor += color * alpha;
-        finalAlpha = max(finalAlpha, alpha * 1.2);
+      if (uGlowEnabled > 0.5) {
+        float severity = jointSeverity(i);
+        if (severity > 0.0) {
+          vec2 diff = toAspect(st - uLandmarks[i], aspect);
+          float d = length(diff);
+          float correctedS = pow(severity, 1.0 / 2.2);
+          float radius = mix(0.05, 0.15, correctedS);
+          float distNormalized = d / radius;
+          float core = pow(1.0 - smoothstep(0.0, 0.4, distNormalized), 2.0);
+          float glow = pow(1.0 - distNormalized, 1.5);
+          float pulse = 0.7 + 0.3 * sin(uTime * 8.0 + float(i) * 0.5);
+          float alpha = mix(0.5, 0.9, correctedS) * (core * 0.8 + glow * 0.4) * pulse;
+          vec3 color = mix(vec3(0.5, 1.0, 0.0), vec3(1.0, 0.1, 0.1), correctedS);
+          color *= (1.0 + correctedS * 0.5);
+          finalColor += color * alpha;
+          finalAlpha = max(finalAlpha, alpha * 1.2);
+        }
       }
     }
 
@@ -157,130 +173,274 @@ const FRAGMENT_SHADER = `#version 300 es
   }
 `;
 
-/**
- * initializeWebGL
- * Sets up shaders, programs, and uniform locations.
- */
-const initializeWebGL = (gl: ExpoWebGLRenderingContext) => {
-  const vert = gl.createShader(gl.VERTEX_SHADER);
-  const frag = gl.createShader(gl.FRAGMENT_SHADER);
+const BLIT_FRAGMENT_SHADER = `#version 300 es
+  precision mediump float;
+  uniform sampler2D uTexture;
+  in vec2 vTexCoord;
+  out vec4 fragColor;
+  void main() {
+    fragColor = texture(uTexture, vTexCoord);
+  }
+`;
+
+type GlLocations = {
+  skeletonProgram: WebGLProgram;
+  blitProgram: WebGLProgram;
+  posLoc: number;
+  blitPosLoc: number;
+  blitTexLoc: WebGLUniformLocation | null;
+  resLoc: WebGLUniformLocation | null;
+  landmarksLoc: WebGLUniformLocation | null;
+  severityLoc: WebGLUniformLocation | null;
+  timeLoc: WebGLUniformLocation | null;
+  poseActiveLoc: WebGLUniformLocation | null;
+  glowLoc: WebGLUniformLocation | null;
+  fbo: WebGLFramebuffer | null;
+  fboTexture: WebGLTexture | null;
+  fboWidth: number;
+  fboHeight: number;
+};
+
+function compileShader(
+  gl: ExpoWebGLRenderingContext,
+  type: number,
+  source: string,
+): WebGLShader | null {
+  const shader = gl.createShader(type);
+  if (!shader) return null;
+  gl.shaderSource(shader, source);
+  gl.compileShader(shader);
+  return shader;
+}
+
+function linkProgram(
+  gl: ExpoWebGLRenderingContext,
+  vert: WebGLShader,
+  frag: WebGLShader,
+): WebGLProgram | null {
   const program = gl.createProgram();
-
-  if (!vert || !frag || !program) return null;
-
-  gl.shaderSource(vert, VERTEX_SHADER);
-  gl.compileShader(vert);
-
-  gl.shaderSource(frag, FRAGMENT_SHADER);
-  gl.compileShader(frag);
-
+  if (!program) return null;
   gl.attachShader(program, vert);
   gl.attachShader(program, frag);
   gl.linkProgram(program);
+  return program;
+}
 
-  // Fix 4: Bypass hook linter
-  const activate = gl.useProgram;
-  activate.call(gl, program);
-
+function setupFullscreenQuad(gl: ExpoWebGLRenderingContext, program: WebGLProgram) {
   const buffer = gl.createBuffer();
   gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
   const vertices = new Float32Array([-1, -1, 1, -1, -1, 1, -1, 1, 1, -1, 1, 1]);
   gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
-
   const posLoc = gl.getAttribLocation(program, "position");
   gl.enableVertexAttribArray(posLoc);
   gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, false, 0, 0);
+  return posLoc;
+}
+
+function ensureHalfResFbo(
+  gl: ExpoWebGLRenderingContext,
+  state: GlLocations,
+  screenWidth: number,
+  screenHeight: number,
+): void {
+  const fboWidth = Math.max(1, Math.floor(screenWidth * OVERLAY_RENDER_SCALE));
+  const fboHeight = Math.max(1, Math.floor(screenHeight * OVERLAY_RENDER_SCALE));
+
+  if (state.fboWidth === fboWidth && state.fboHeight === fboHeight) {
+    return;
+  }
+
+  if (state.fboTexture) gl.deleteTexture(state.fboTexture);
+  if (state.fbo) gl.deleteFramebuffer(state.fbo);
+
+  const texture = gl.createTexture();
+  if (!texture) return;
+
+  gl.bindTexture(gl.TEXTURE_2D, texture);
+  gl.texImage2D(
+    gl.TEXTURE_2D,
+    0,
+    gl.RGBA,
+    fboWidth,
+    fboHeight,
+    0,
+    gl.RGBA,
+    gl.UNSIGNED_BYTE,
+    null,
+  );
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+
+  const fbo = gl.createFramebuffer();
+  if (!fbo) return;
+
+  gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+  gl.framebufferTexture2D(
+    gl.FRAMEBUFFER,
+    gl.COLOR_ATTACHMENT0,
+    gl.TEXTURE_2D,
+    texture,
+    0,
+  );
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  gl.bindTexture(gl.TEXTURE_2D, null);
+
+  state.fbo = fbo;
+  state.fboTexture = texture;
+  state.fboWidth = fboWidth;
+  state.fboHeight = fboHeight;
+}
+
+const initializeWebGL = (gl: ExpoWebGLRenderingContext): GlLocations | null => {
+  const vert = compileShader(gl, gl.VERTEX_SHADER, VERTEX_SHADER);
+  const skeletonFrag = compileShader(gl, gl.FRAGMENT_SHADER, FRAGMENT_SHADER);
+  const blitFrag = compileShader(gl, gl.FRAGMENT_SHADER, BLIT_FRAGMENT_SHADER);
+  if (!vert || !skeletonFrag || !blitFrag) return null;
+
+  const skeletonProgram = linkProgram(gl, vert, skeletonFrag);
+  const blitProgram = linkProgram(gl, vert, blitFrag);
+  if (!skeletonProgram || !blitProgram) return null;
+
+  const activate = gl.useProgram;
+  activate.call(gl, skeletonProgram);
+  const posLoc = setupFullscreenQuad(gl, skeletonProgram);
+
+  activate.call(gl, blitProgram);
+  const blitPosLoc = setupFullscreenQuad(gl, blitProgram);
 
   return {
-    resLoc: gl.getUniformLocation(program, "uResolution"),
-    landmarksLoc: gl.getUniformLocation(program, "uLandmarks"),
-    severityLoc: gl.getUniformLocation(program, "uSeverity"),
-    timeLoc: gl.getUniformLocation(program, "uTime"),
-    poseActiveLoc: gl.getUniformLocation(program, "uPoseActive"),
+    skeletonProgram,
+    blitProgram,
+    posLoc,
+    blitPosLoc,
+    blitTexLoc: gl.getUniformLocation(blitProgram, "uTexture"),
+    resLoc: gl.getUniformLocation(skeletonProgram, "uResolution"),
+    landmarksLoc: gl.getUniformLocation(skeletonProgram, "uLandmarks"),
+    severityLoc: gl.getUniformLocation(skeletonProgram, "uSeverity"),
+    timeLoc: gl.getUniformLocation(skeletonProgram, "uTime"),
+    poseActiveLoc: gl.getUniformLocation(skeletonProgram, "uPoseActive"),
+    glowLoc: gl.getUniformLocation(skeletonProgram, "uGlowEnabled"),
+    fbo: null,
+    fboTexture: null,
+    fboWidth: 0,
+    fboHeight: 0,
   };
 };
 
-/**
- * WebGLOverlay Component
- */
-const WebGLOverlayInner: React.FC<WebGLOverlayProps> = ({
-  uLandmarks,
-  uSeverity,
-  poseActive = false,
-}) => {
-  const { width, height } = useWindowDimensions();
-  const glRef = useRef<ExpoWebGLRenderingContext | null>(null);
-  const startTimeRef = useRef<number>(Date.now());
-  const locationsRef = useRef<{
-    resLoc: WebGLUniformLocation | null;
-    landmarksLoc: WebGLUniformLocation | null;
-    severityLoc: WebGLUniformLocation | null;
-    timeLoc: WebGLUniformLocation | null;
-    poseActiveLoc: WebGLUniformLocation | null;
-  }>({
-    resLoc: null,
-    landmarksLoc: null,
-    severityLoc: null,
-    timeLoc: null,
-    poseActiveLoc: null,
-  });
+function hasActiveGlow(severity: Float32Array): boolean {
+  for (let i = 0; i < severity.length; i++) {
+    if (severity[i] > GLOW_SEVERITY_EPS) return true;
+  }
+  return false;
+}
 
-  const onContextCreate = (gl: ExpoWebGLRenderingContext) => {
-    glRef.current = gl;
-    const locations = initializeWebGL(gl);
-    if (locations) {
-      locationsRef.current = locations;
-    }
-  };
+const WebGLOverlayInner = forwardRef<WebGLOverlayHandle, WebGLOverlayProps>(
+  function WebGLOverlayInner(
+    { uLandmarks, uSeverity, poseActive = false },
+    ref,
+  ) {
+    const { width, height } = useWindowDimensions();
+    const glRef = useRef<ExpoWebGLRenderingContext | null>(null);
+    const glStateRef = useRef<GlLocations | null>(null);
+    const startTimeRef = useRef<number>(Date.now());
 
-  const renderFrame = useCallback(() => {
-    const gl = glRef.current;
-    const { resLoc, landmarksLoc, severityLoc, timeLoc, poseActiveLoc } =
-      locationsRef.current;
-    if (
-      !gl ||
-      !resLoc ||
-      !landmarksLoc ||
-      !severityLoc ||
-      !timeLoc ||
-      !poseActiveLoc
-    ) {
-      return;
-    }
+    const landmarksRef = useRef(uLandmarks);
+    landmarksRef.current = uLandmarks;
+    const severityRef = useRef(uSeverity);
+    severityRef.current = uSeverity;
+    const poseActiveRef = useRef(poseActive);
+    poseActiveRef.current = poseActive;
 
-    gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
-    gl.clearColor(0, 0, 0, 0);
-    gl.clear(gl.COLOR_BUFFER_BIT);
+    const glowActive = useMemo(() => hasActiveGlow(uSeverity), [uSeverity]);
 
-    // Pass uTime (Fix 4)
-    const elapsed = (Date.now() - startTimeRef.current) / 1000.0;
-    gl.uniform1f(timeLoc, elapsed);
+    const onContextCreate = (gl: ExpoWebGLRenderingContext) => {
+      glRef.current = gl;
+      glStateRef.current = initializeWebGL(gl);
+    };
 
-    gl.uniform2f(resLoc, width, height);
-    gl.uniform2fv(landmarksLoc, uLandmarks);
-    gl.uniform1fv(severityLoc, uSeverity);
-    gl.uniform1f(poseActiveLoc, poseActive ? 1 : 0);
+    const renderFrame = useCallback(() => {
+      const gl = glRef.current;
+      const state = glStateRef.current;
+      if (
+        !gl ||
+        !state ||
+        !state.resLoc ||
+        !state.landmarksLoc ||
+        !state.severityLoc ||
+        !state.timeLoc ||
+        !state.poseActiveLoc ||
+        !state.glowLoc ||
+        !state.blitTexLoc
+      ) {
+        return;
+      }
 
-    gl.drawArrays(gl.TRIANGLES, 0, 6);
-    gl.endFrameEXP();
-  }, [width, height, uLandmarks, uSeverity, poseActive]);
+      const screenW = gl.drawingBufferWidth;
+      const screenH = gl.drawingBufferHeight;
+      ensureHalfResFbo(gl, state, screenW, screenH);
 
-  useRenderLoop(renderFrame);
+      if (!state.fbo || !state.fboTexture) return;
 
-  return (
-    <GLView
-      style={{
-        position: "absolute",
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        zIndex: 10,
-        pointerEvents: "none",
-      }}
-      onContextCreate={onContextCreate}
-    />
-  );
-};
+      const elapsed = (Date.now() - startTimeRef.current) / 1000.0;
+      const glowEnabled = hasActiveGlow(severityRef.current);
+
+      const activate = gl.useProgram;
+      activate.call(gl, state.skeletonProgram);
+
+      gl.bindFramebuffer(gl.FRAMEBUFFER, state.fbo);
+      gl.viewport(0, 0, state.fboWidth, state.fboHeight);
+      gl.clearColor(0, 0, 0, 0);
+      gl.clear(gl.COLOR_BUFFER_BIT);
+
+      gl.uniform1f(state.timeLoc, elapsed);
+      gl.uniform2f(state.resLoc, width, height);
+      gl.uniform2fv(state.landmarksLoc, landmarksRef.current);
+      gl.uniform1fv(state.severityLoc, severityRef.current);
+      gl.uniform1f(state.poseActiveLoc, poseActiveRef.current ? 1 : 0);
+      gl.uniform1f(state.glowLoc, glowEnabled ? 1 : 0);
+      gl.drawArrays(gl.TRIANGLES, 0, 6);
+
+      activate.call(gl, state.blitProgram);
+      gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+      gl.viewport(0, 0, screenW, screenH);
+      gl.clearColor(0, 0, 0, 0);
+      gl.clear(gl.COLOR_BUFFER_BIT);
+      gl.activeTexture(gl.TEXTURE0);
+      gl.bindTexture(gl.TEXTURE_2D, state.fboTexture);
+      gl.uniform1i(state.blitTexLoc, 0);
+      gl.drawArrays(gl.TRIANGLES, 0, 6);
+
+      gl.endFrameEXP();
+    }, [width, height]);
+
+    useImperativeHandle(ref, () => ({ requestRender: renderFrame }), [
+      renderFrame,
+    ]);
+
+    useEffect(() => {
+      renderFrame();
+    }, [uSeverity, poseActive, renderFrame]);
+
+    // Pulse animation only when form-error glow is visible.
+    useRenderLoop(renderFrame, glowActive);
+
+    return (
+      <GLView
+        style={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          zIndex: 10,
+          pointerEvents: "none",
+        }}
+        onContextCreate={onContextCreate}
+      />
+    );
+  },
+);
 
 export const WebGLOverlay = memo(WebGLOverlayInner);

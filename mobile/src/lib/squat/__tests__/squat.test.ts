@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import { FEEDBACK } from "@/constants/feedbackStrings";
 import {
   meanHipKneeSegmentAngle,
   meanKneeAngle,
@@ -92,6 +93,34 @@ describe("biomechanics", () => {
     const stand = meanHipKneeSegmentAngle(sideStandingFrame());
     const deep = meanHipKneeSegmentAngle(sideDeepFrame());
     expect(deep).toBeLessThan(stand);
+  });
+});
+
+describe("SquatRepTracker auto-calibration", () => {
+  test("requests calibration after stable standing without a button press", () => {
+    const tracker = new SquatRepTracker({
+      runtimeConfig: getSquatRuntimeConfig({ anglePreset: "side" }),
+    });
+    let sawRequested = false;
+    let sawCalibrated = false;
+    for (let i = 0; i < 30; i++) {
+      const snap = tracker.pushFrame(sideStandingFrame());
+      if (snap.calibrationRequested) sawRequested = true;
+      if (snap.calibrated) sawCalibrated = true;
+    }
+    expect(sawRequested).toBe(true);
+    expect(sawCalibrated).toBe(true);
+  });
+
+  test("resets stability progress when standing pose moves", () => {
+    const tracker = new SquatRepTracker({
+      runtimeConfig: getSquatRuntimeConfig({ anglePreset: "side" }),
+    });
+    for (let i = 0; i < 8; i++) tracker.pushFrame(sideStandingFrame());
+    tracker.pushFrame(sideDeepFrame());
+    expect(tracker.pushFrame(sideStandingFrame()).calibrationRequested).toBe(
+      false,
+    );
   });
 });
 
@@ -206,7 +235,7 @@ describe("formatSquatFeedback", () => {
         forward_lean: 0.1,
       },
     });
-    expect(msg).toContain("Knees caving inward");
+    expect(msg).toContain(FEEDBACK.kneeValgus);
   });
 
   test("falls back to strongest error head when none exceed threshold", () => {
@@ -219,7 +248,7 @@ describe("formatSquatFeedback", () => {
         forward_lean: 0.18,
       },
     });
-    expect(msg).toContain("Go deeper");
+    expect(msg).toContain(FEEDBACK.insufficientDepth);
     expect(msg).toContain("42%");
   });
 });

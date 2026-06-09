@@ -15,12 +15,60 @@ Alias: `@/*` → `mobile/src/*`
 
 ## Squat pipeline
 
+Real-time coaching and rep-level AI inference run on **different timelines**.
+
+```text
+Pose Frames
+    ↓
+SquatRepTracker
+    ├── Live loop (every frame, ~30 FPS)
+    │       ↓
+    │   getLiveFormCue + buildTrackerFeedback
+    │       ↓
+    │   WorkoutStatusPanel / useVocalFeedback
+    │
+    └── Rep-completion loop (once per rep)
+            ↓
+        resample → 45 frames (in repDetector)
+            ↓
+        SquatInferencePipeline.runOnRepWindow
+            ↓
+         TFLite
+            ↓
+    SquatInferenceResult + buildModelFeedback
+            ↓
+        buildTrackerFeedback (merges tracker + AI result)
+            ↓
+       UI / Voice
 ```
-Camera (MediaPipe)
-  → raw landmarks
-  → SquatRepTracker (rep count, phase, window)
-  → [rep complete] SquatInferencePipeline (features → TFLite → feedback)
+
+### Live loop (no ML)
+
+Runs continuously while the user moves. Heuristic coaching only.
+
+| Source | Examples |
+|--------|----------|
+| `getLiveFormCue` | "Go a little deeper", "Drive through your heels", "Keep your chest proud" |
+| `buildTrackerFeedback` (phase) | "Nice and controlled on the way down", calibration prompts |
+
 ```
+Camera → useSquatAnalysis → SquatRepTracker.pushFrame
+       → getLiveFormCue (optional)
+       → buildTrackerFeedback → UI / TTS
+```
+
+### Rep-completion loop (TFLite)
+
+Runs only after `SquatRepTracker` detects a complete rep and exposes `repWindowReady`.
+
+```
+Completed rep window → extractSequenceFeatures → normalize → TFLite
+                    → depth gate → buildModelFeedback → buildTrackerFeedback → UI / TTS
+```
+
+`buildTrackerFeedback` priority: live cue → model feedback → calibration / phase / rep-complete copy.
+
+See `useSquatAnalysis.ts` (orchestration), `squatFeedback.ts` (copy merge), `squatInference.ts` (model path).
 
 ### Coordinates
 
