@@ -26,7 +26,8 @@ import {
 } from "@/lib/squat";
 
 export function useSquatAnalysis(enabled: boolean) {
-  const { cameraAnglePreset, sensitivity, repCountOnlyMode } = useAppSettings();
+  const { cameraAnglePreset, sensitivity, formFeedbackSource, repCountOnlyMode } =
+    useAppSettings();
 
   const viewVoterRef = useRef(new ViewAngleVoter());
   const [detectedView, setDetectedView] = useState<ResolvedViewAngle>("side");
@@ -37,9 +38,17 @@ export function useSquatAnalysis(enabled: boolean) {
   );
 
   const runtimeConfig = useMemo(
-    () => getSquatRuntimeConfig({ anglePreset: activeViewAngle, sensitivity }),
-    [activeViewAngle, sensitivity],
+    () =>
+      getSquatRuntimeConfig({
+        anglePreset: activeViewAngle,
+        sensitivity,
+        formFeedbackSource,
+      }),
+    [activeViewAngle, sensitivity, formFeedbackSource],
   );
+
+  const skipFormModel =
+    repCountOnlyMode || formFeedbackSource === "biomech";
 
   const pipelineRef = useRef(new SquatInferencePipeline({ runtimeConfig }));
   const trackerLatestRef = useRef<RepTrackerSnapshot | null>(null);
@@ -57,7 +66,7 @@ export function useSquatAnalysis(enabled: boolean) {
     modelError,
     repCountOnly,
     degradeToRepCountOnly,
-  } = useSquatModel(enabled, repCountOnlyMode);
+  } = useSquatModel(enabled, skipFormModel);
 
   const modelLoadStatus = loadState.status;
 
@@ -165,7 +174,8 @@ export function useSquatAnalysis(enabled: boolean) {
         if (voted) setDetectedView(voted);
       }
 
-      if (!modelReady && modelLoadStatus !== "loading") return;
+      // Track reps + biomech feedback even when TFLite failed or is unavailable.
+      if (modelLoadStatus === "idle") return;
 
       const snapshot = pipelineRef.current.pushFrame(rawLandmarks);
       publishTracker(snapshot);
@@ -175,13 +185,20 @@ export function useSquatAnalysis(enabled: boolean) {
       }
       wasSquattingRef.current = snapshot.isSquatting;
 
-      if (modelLoadStatus !== "loaded" || !snapshot.repWindowReady) return;
+      if (!snapshot.repWindowReady) return;
 
       const repWindow = pipelineRef.current.takeCompletedRepWindow();
       if (!repWindow) return;
 
       const model = modelRef.current;
-      if (!model) return;
+      if (!model) {
+        const biomech = pipelineRef.current.runBiomechOnRepWindow(
+          repWindow,
+          snapshot,
+        );
+        if (biomech) setResult(biomech);
+        return;
+      }
       if (inferenceBusyRef.current) {
         pendingRepsRef.current.push({ window: repWindow, snapshot });
         return;

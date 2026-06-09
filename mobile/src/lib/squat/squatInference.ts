@@ -11,9 +11,12 @@ import {
 import { SQUAT_SEQUENCE_LENGTH } from "@/lib/squat/constants";
 import { normalizeFeatures } from "@/lib/squat/featureScaler";
 import { encodeModelInput, parseModelOutputs } from "@/lib/squat/squatModelIO";
+import {
+  biomechIndicatesIncorrect,
+  detectFormErrorsFromRepWindow,
+} from "@/lib/squat/formErrorDetection";
 import { buildModelFeedback } from "@/lib/squat/squatFeedback";
 import {
-  isDepthAdequateInWindow,
   type RepTrackerSnapshot,
   SquatRepTracker,
   type SquatRepTrackerOptions,
@@ -33,28 +36,54 @@ export interface SquatInferencePipelineOptions extends SquatRepTrackerOptions {
   runtimeConfig?: SquatRuntimeConfig;
 }
 
-function applyBiomechanicalDepthGate(
-  prediction: SquatPrediction,
+/** Hybrid: rules override pass/fail when they flag an error; otherwise use ML. */
+function mergeRulesFirst(
+  model: SquatPrediction,
+  biomechErrors: SquatPrediction["errors"],
   repWindow: Float32Array[],
   config: SquatRuntimeConfig,
 ): SquatPrediction {
-  const minMetric = isDepthAdequateInWindow(
-    repWindow,
-    config.rep.trackingMode,
-    config.rep.adequateDepth,
-  );
-  const { errorThreshold, depthGateSuppressedScore } = config.inference;
-
-  if (prediction.errors.insufficient_depth <= errorThreshold || minMetric) {
-    return prediction;
+  if (biomechIndicatesIncorrect(biomechErrors, config)) {
+    return {
+      ...predictionFromBiomech(biomechErrors, repWindow, config),
+      kneeAngle: model.kneeAngle,
+    };
   }
 
+  const errors = {
+    knee_valgus: Math.max(model.errors.knee_valgus, biomechErrors.knee_valgus),
+    insufficient_depth: Math.max(
+      model.errors.insufficient_depth,
+      biomechErrors.insufficient_depth,
+    ),
+    forward_lean: Math.max(
+      model.errors.forward_lean,
+      biomechErrors.forward_lean,
+    ),
+  };
+
+  return { ...model, errors };
+}
+
+function predictionFromBiomech(
+  biomechErrors: SquatPrediction["errors"],
+  repWindow: Float32Array[],
+  config: SquatRuntimeConfig,
+): SquatPrediction {
+  const incorrect = biomechIndicatesIncorrect(biomechErrors, config);
+  const maxError = Math.max(
+    biomechErrors.knee_valgus,
+    biomechErrors.insufficient_depth,
+    biomechErrors.forward_lean,
+  );
+  const incorrectProbability = incorrect ? Math.max(maxError, 0.55) : maxError;
+
   return {
-    ...prediction,
-    errors: {
-      ...prediction.errors,
-      insufficient_depth: depthGateSuppressedScore,
-    },
+    isCorrect: !incorrect,
+    confidence: incorrect ? incorrectProbability : 1 - maxError * 0.5,
+    incorrectProbability,
+    errors: biomechErrors,
+    kneeAngle: meanKneeAngle(repWindow[repWindow.length - 1]),
   };
 }
 
@@ -106,6 +135,37 @@ export class SquatInferencePipeline {
     return this.lastSnapshot;
   }
 
+  /** Angle / geometry form check — no TFLite required. */
+  runBiomechOnRepWindow(
+    repWindow: Float32Array[],
+    snapshot: RepTrackerSnapshot,
+  ): SquatInferenceResult | null {
+    if (repWindow.length < SQUAT_SEQUENCE_LENGTH) return null;
+
+    const biomechErrors = detectFormErrorsFromRepWindow(
+      repWindow,
+      this.config,
+    );
+    const prediction = predictionFromBiomech(
+      biomechErrors,
+      repWindow,
+      this.config,
+    );
+
+    if (__DEV__) {
+      devLog(
+        `[squat] biomech errors=[${biomechErrors.knee_valgus.toFixed(3)}, ${biomechErrors.insufficient_depth.toFixed(3)}, ${biomechErrors.forward_lean.toFixed(3)}] correct=${prediction.isCorrect}`,
+      );
+    }
+
+    return {
+      ...prediction,
+      feedback: buildModelFeedback(prediction, this.config),
+      repNumber: snapshot.repCount,
+      phase: snapshot.phase,
+    };
+  }
+
   async runOnRepWindow(
     model: TfliteModel,
     repWindow: Float32Array[],
@@ -114,6 +174,15 @@ export class SquatInferencePipeline {
     if (repWindow.length < SQUAT_SEQUENCE_LENGTH) {
       return null;
     }
+
+    if (this.config.formFeedbackSource === "biomech") {
+      return this.runBiomechOnRepWindow(repWindow, snapshot);
+    }
+
+    const biomechErrors = detectFormErrorsFromRepWindow(
+      repWindow,
+      this.config,
+    );
 
     const t0 = __DEV__ ? performance.now() : 0;
     const features = extractSequenceFeatures(repWindow);
@@ -129,7 +198,7 @@ export class SquatInferencePipeline {
     if (__DEV__) {
       const ms = performance.now() - t0;
       devLog(
-        `[squat] model inference ${ms.toFixed(1)}ms · cls=${clsProb.toFixed(3)} errors=[${err0.toFixed(3)}, ${err1.toFixed(3)}, ${err2.toFixed(3)}]`,
+        `[squat] model ${ms.toFixed(1)}ms · cls=${clsProb.toFixed(3)} model=[${err0.toFixed(3)}, ${err1.toFixed(3)}, ${err2.toFixed(3)}] biomech=[${biomechErrors.knee_valgus.toFixed(3)}, ${biomechErrors.insufficient_depth.toFixed(3)}, ${biomechErrors.forward_lean.toFixed(3)}]`,
       );
     }
 
@@ -138,7 +207,7 @@ export class SquatInferencePipeline {
     const confidence = isCorrect ? 1 - clsProb : clsProb;
     const latestFrame = repWindow[repWindow.length - 1];
 
-    const rawPrediction: SquatPrediction = {
+    const modelPrediction: SquatPrediction = {
       isCorrect,
       confidence,
       incorrectProbability: clsProb,
@@ -150,11 +219,15 @@ export class SquatInferencePipeline {
       kneeAngle: meanKneeAngle(latestFrame),
     };
 
-    const prediction = applyBiomechanicalDepthGate(
-      rawPrediction,
-      repWindow,
-      this.config,
-    );
+    const prediction =
+      this.config.formFeedbackSource === "hybrid"
+        ? mergeRulesFirst(
+            modelPrediction,
+            biomechErrors,
+            repWindow,
+            this.config,
+          )
+        : modelPrediction;
 
     return {
       ...prediction,

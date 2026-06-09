@@ -10,6 +10,7 @@ import {
 import type {
   CameraAnglePreset,
   CameraFacing,
+  FormFeedbackSource,
   PoseModelQuality,
   SensitivityPreset,
 } from "@/lib/squat/squatConfig";
@@ -21,6 +22,7 @@ interface AppSettings {
   cameraFacing: CameraFacing;
   cameraAnglePreset: CameraAnglePreset;
   sensitivity: SensitivityPreset;
+  formFeedbackSource: FormFeedbackSource;
   developerMode: boolean;
   repCountOnlyMode: boolean;
   poseModelQuality: PoseModelQuality;
@@ -32,6 +34,7 @@ interface AppSettings {
   setCameraFacing: (facing: CameraFacing) => Promise<void>;
   setCameraAnglePreset: (preset: CameraAnglePreset) => Promise<void>;
   setSensitivity: (preset: SensitivityPreset) => Promise<void>;
+  setFormFeedbackSource: (source: FormFeedbackSource) => Promise<void>;
   toggleDeveloperMode: () => Promise<void>;
   setRepCountOnlyMode: (on: boolean) => Promise<void>;
   setPoseModelQuality: (quality: PoseModelQuality) => Promise<void>;
@@ -49,6 +52,7 @@ const KEYS = {
   camera: "@camera_facing",
   angle: "@camera_angle_preset",
   sensitivity: "@sensitivity",
+  formFeedback: "@form_feedback_source",
   dev: "@developer_mode",
   repOnly: "@rep_count_only",
   poseModel: "@pose_model_quality",
@@ -78,6 +82,8 @@ export function AppSettingsProvider({
     useState<CameraAnglePreset>("auto");
   const [sensitivity, setSensitivityState] =
     useState<SensitivityPreset>("normal");
+  const [formFeedbackSource, setFormFeedbackSourceState] =
+    useState<FormFeedbackSource>("hybrid");
   const [developerMode, setDeveloperMode] = useState(false);
   const [repCountOnlyMode, setRepCountOnlyModeState] = useState(false);
   const [poseModelQuality, setPoseModelQualityState] =
@@ -107,6 +113,15 @@ export function AppSettingsProvider({
         const sens = await AsyncStorage.getItem(KEYS.sensitivity);
         if (sens === "beginner" || sens === "normal" || sens === "strict")
           setSensitivityState(sens);
+
+        const formSrc = await AsyncStorage.getItem(KEYS.formFeedback);
+        if (
+          formSrc === "biomech" ||
+          formSrc === "hybrid" ||
+          formSrc === "model"
+        ) {
+          setFormFeedbackSourceState(formSrc);
+        }
 
         const poseModel = await AsyncStorage.getItem(KEYS.poseModel);
         if (poseModel === "lite" || poseModel === "full")
@@ -156,6 +171,14 @@ export function AppSettingsProvider({
     await AsyncStorage.setItem(KEYS.sensitivity, preset);
   }, []);
 
+  const setFormFeedbackSource = useCallback(
+    async (source: FormFeedbackSource) => {
+      setFormFeedbackSourceState(source);
+      await AsyncStorage.setItem(KEYS.formFeedback, source);
+    },
+    [],
+  );
+
   const toggleDeveloperMode = useCallback(async () => {
     const next = !developerMode;
     setDeveloperMode(next);
@@ -190,6 +213,7 @@ export function AppSettingsProvider({
       cameraFacing,
       cameraAnglePreset,
       sensitivity,
+      formFeedbackSource,
       developerMode,
       repCountOnlyMode,
       poseModelQuality,
@@ -201,6 +225,7 @@ export function AppSettingsProvider({
       setCameraFacing,
       setCameraAnglePreset,
       setSensitivity,
+      setFormFeedbackSource,
       toggleDeveloperMode,
       setRepCountOnlyMode,
       setPoseModelQuality,
@@ -215,6 +240,7 @@ export function AppSettingsProvider({
       cameraFacing,
       cameraAnglePreset,
       sensitivity,
+      formFeedbackSource,
       developerMode,
       repCountOnlyMode,
       poseModelQuality,
@@ -226,6 +252,7 @@ export function AppSettingsProvider({
       setCameraFacing,
       setCameraAnglePreset,
       setSensitivity,
+      setFormFeedbackSource,
       toggleDeveloperMode,
       setRepCountOnlyMode,
       setPoseModelQuality,

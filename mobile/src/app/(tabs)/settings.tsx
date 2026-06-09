@@ -7,6 +7,7 @@ import { useWorkoutSession } from "@/context/WorkoutSessionContext";
 import type {
   CameraAnglePreset,
   CameraFacing,
+  FormFeedbackSource,
   PoseModelQuality,
   SensitivityPreset,
 } from "@/lib/squat/squatConfig";
@@ -20,6 +21,8 @@ export default function SettingsScreen() {
     cameraFacing,
     cameraAnglePreset,
     sensitivity,
+    formFeedbackSource,
+    setFormFeedbackSource,
     developerMode,
     toggleVocalFeedback,
     toggleHapticFeedback,
@@ -203,18 +206,49 @@ export default function SettingsScreen() {
       </View>
 
       {developerMode ? (
-        <TouchableOpacity
-          onPress={() => {
-            void exportFailures().then((json) => {
-              if (json) console.log("[dev] failure export", json);
-            });
-          }}
-          className="mt-4 rounded-2xl border border-yellow-500/30 bg-yellow-500/10 p-4"
-        >
-          <Text className="text-center text-sm text-yellow-200">
-            Export failed reps (console)
+        <>
+          <Text className="mt-6 mb-2 font-bold text-sm text-yellow-200/80 uppercase">
+            Form feedback source
           </Text>
-        </TouchableOpacity>
+          <View className="mb-2 flex-row gap-2">
+            {(
+              [
+                ["biomech", "Rules"],
+                ["hybrid", "Hybrid"],
+                ["model", "ML"],
+              ] as const
+            ).map(([src, label]) => (
+              <TouchableOpacity
+                key={src}
+                onPress={() => void setFormFeedbackSource(src)}
+                className={`flex-1 rounded-xl border p-3 ${
+                  formFeedbackSource === src
+                    ? "border-yellow-400/50 bg-yellow-500/15"
+                    : "border-white/10 bg-white/5"
+                }`}
+              >
+                <Text className="text-center font-bold text-white text-xs">
+                  {label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+          <Text className="mb-4 text-center text-[11px] text-white/40">
+            Rules = angles only · Hybrid = rules override ML · ML = model only
+          </Text>
+          <TouchableOpacity
+            onPress={() => {
+              void exportFailures().then((json) => {
+                if (json) console.log("[dev] failure export", json);
+              });
+            }}
+            className="rounded-2xl border border-yellow-500/30 bg-yellow-500/10 p-4"
+          >
+            <Text className="text-center text-sm text-yellow-200">
+              Export failed reps (console)
+            </Text>
+          </TouchableOpacity>
+        </>
       ) : null}
 
       <TouchableOpacity

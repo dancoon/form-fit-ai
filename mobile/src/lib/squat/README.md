@@ -12,7 +12,8 @@ Vocal: calibration prompts, "Next rep" when descent starts, model feedback after
 | File | Role |
 |------|------|
 | `repDetector.ts` | Rep FSM, calibration, window |
-| `squatInference.ts` | Pipeline, depth gate, model |
+| `squatInference.ts` | Pipeline; `formFeedbackSource` = biomech / hybrid / model |
+| `formErrorDetection.ts` | Angle-based error scores |
 | `biomechanics.ts` | Angles, 22-d features |
 | `featureScaler.ts` | Z-score from bundled JSON |
 | `squatConfig.ts` | Runtime thresholds |

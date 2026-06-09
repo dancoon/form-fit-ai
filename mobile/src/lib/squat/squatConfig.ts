@@ -7,6 +7,14 @@ export type RepTrackingMode = "thigh_min" | "knee_mean" | "knee_min";
 export type SensitivityPreset = "beginner" | "normal" | "strict";
 export type PoseModelQuality = "lite" | "full";
 
+/**
+ * How rep-level form feedback is produced.
+ * - biomech: angle/geometry rules only
+ * - hybrid: rules win when they flag an error; otherwise ML classification
+ * - model: TFLite only
+ */
+export type FormFeedbackSource = "biomech" | "hybrid" | "model";
+
 export interface RepThresholds {
   trackingMode: RepTrackingMode;
   /** Primary metric threshold — below = in rep (thigh ° side, knee ° front). */
@@ -41,10 +49,26 @@ export interface PoseQualityConfig {
   minKeyLandmarkVisibility: number;
 }
 
+/** Angle / geometry thresholds for rule-based form error detection. */
+export interface BiomechErrorThresholds {
+  /** Max torso inclination (° from vertical) at bottom before forward-lean score rises. */
+  maxTorsoInclinationDeg: number;
+  /** Degrees over which torso inclination maps to score 0→1 above the max. */
+  forwardLeanSeverityRangeDeg: number;
+  /** Knee medial to ankle (norm. x) before valgus score rises (front view). */
+  maxKneeValgusOffset: number;
+  /** Norm. x span mapping valgus offset to score 0→1 above the max. */
+  kneeValgusSeverityRange: number;
+  /** Degrees above adequateDepth before insufficient-depth score reaches 1. */
+  depthSeverityRangeDeg: number;
+}
+
 export interface SquatRuntimeConfig {
   viewAngle: ResolvedViewAngle;
   rep: RepThresholds;
   inference: InferenceThresholds;
+  biomech: BiomechErrorThresholds;
+  formFeedbackSource: FormFeedbackSource;
   pose: PoseQualityConfig;
 }
 
@@ -84,6 +108,32 @@ const FRONT_REP: RepThresholds = {
   endDescentMargin: 10,
 };
 
+// Torso inclination: warning at maxTorsoInclinationDeg, severity 1 at max + forwardLeanSeverityRangeDeg.
+// ~20–30° acceptable at bottom; >40° noticeable; calibrate further against annotated validation set.
+const SENSITIVITY_BIOMECH: Record<SensitivityPreset, BiomechErrorThresholds> = {
+  beginner: {
+    maxTorsoInclinationDeg: 35,
+    forwardLeanSeverityRangeDeg: 15,
+    maxKneeValgusOffset: 0.055,
+    kneeValgusSeverityRange: 0.05,
+    depthSeverityRangeDeg: 22,
+  },
+  normal: {
+    maxTorsoInclinationDeg: 30,
+    forwardLeanSeverityRangeDeg: 15,
+    maxKneeValgusOffset: 0.04,
+    kneeValgusSeverityRange: 0.04,
+    depthSeverityRangeDeg: 18,
+  },
+  strict: {
+    maxTorsoInclinationDeg: 25,
+    forwardLeanSeverityRangeDeg: 12,
+    maxKneeValgusOffset: 0.03,
+    kneeValgusSeverityRange: 0.035,
+    depthSeverityRangeDeg: 14,
+  },
+};
+
 const SENSITIVITY_INFERENCE: Record<SensitivityPreset, InferenceThresholds> = {
   beginner: {
     errorThreshold: 0.62,
@@ -111,6 +161,7 @@ export function getRepThresholds(
 export function getSquatRuntimeConfig(options?: {
   anglePreset?: ResolvedViewAngle;
   sensitivity?: SensitivityPreset;
+  formFeedbackSource?: FormFeedbackSource;
 }): SquatRuntimeConfig {
   const viewAngle = options?.anglePreset ?? "side";
   const sensitivity = options?.sensitivity ?? "normal";
@@ -118,6 +169,8 @@ export function getSquatRuntimeConfig(options?: {
     viewAngle,
     rep: getRepThresholds(viewAngle),
     inference: SENSITIVITY_INFERENCE[sensitivity],
+    biomech: SENSITIVITY_BIOMECH[sensitivity],
+    formFeedbackSource: options?.formFeedbackSource ?? "hybrid",
     pose: { minKeyLandmarkVisibility: 0.45 },
   };
 }

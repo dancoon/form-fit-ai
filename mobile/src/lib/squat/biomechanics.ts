@@ -243,6 +243,30 @@ export function extractSequenceFeatures(
   return out;
 }
 
+/** Torso inclination from vertical (degrees). Larger ≈ more forward lean. */
+export function torsoInclinationDeg(frame: Float32Array): number {
+  const angles = extractJointAngles(frame);
+  return angles[6];
+}
+
+/**
+ * Knee-inward offset vs ankle (normalized image x).
+ * Positive when the knee is medial to the ankle (valgus / cave-in).
+ */
+export function kneeValgusOffsets(frame: Float32Array): {
+  left: number;
+  right: number;
+} {
+  const lKnee = getLandmarkCoords(frame, LM.LEFT_KNEE);
+  const rKnee = getLandmarkCoords(frame, LM.RIGHT_KNEE);
+  const lAnkle = getLandmarkCoords(frame, LM.LEFT_ANKLE);
+  const rAnkle = getLandmarkCoords(frame, LM.RIGHT_ANKLE);
+  return {
+    left: Math.max(0, lKnee[0] - lAnkle[0]),
+    right: Math.max(0, rAnkle[0] - rKnee[0]),
+  };
+}
+
 export function meanKneeAngle(frame: Float32Array): number {
   const angles = extractJointAngles(frame);
   return (angles[0] + angles[1]) / 2;

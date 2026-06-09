@@ -110,10 +110,10 @@ export interface TrackerFeedbackInput {
 export function buildTrackerFeedback(input: TrackerFeedbackInput): string {
   const { tracker, result, repCountOnlyMode, activeViewAngle } = input;
 
+  if (result?.feedback) return result.feedback;
   if (repCountOnlyMode && tracker && tracker.repCount > 0) {
     return repCountOnlyFeedback();
   }
-  if (result?.feedback) return result.feedback;
   if (!tracker) return "";
 
   if (!tracker.calibrationRequested) {
@@ -136,10 +136,10 @@ export function buildTrackerFeedback(input: TrackerFeedbackInput): string {
 export function buildVocalFeedback(input: TrackerFeedbackInput): string {
   const { tracker, result, repCountOnlyMode, activeViewAngle } = input;
 
+  if (result?.feedback) return result.feedback;
   if (repCountOnlyMode && tracker && tracker.repCount > 0) {
     return repCountOnlyFeedback();
   }
-  if (result?.feedback) return result.feedback;
   if (!tracker) return "";
 
   if (!tracker.calibrationRequested) {

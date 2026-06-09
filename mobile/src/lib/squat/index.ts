@@ -19,6 +19,7 @@ export {
   getSquatRuntimeConfig,
   type CameraAnglePreset,
   type CameraFacing,
+  type FormFeedbackSource,
   type PoseModelQuality,
   type ResolvedViewAngle,
   type SensitivityPreset,
