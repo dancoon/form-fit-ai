@@ -155,11 +155,10 @@ function WorkoutStatusPanelInner({ status }: WorkoutStatusPanelProps) {
 
       <Text
         className="mb-2 font-bold text-sm text-white/80 tracking-wider"
-        accessibilityLabel={`${repCount} reps. Form risk ${Math.round(severity * 100)} percent`}
+        accessibilityLabel={`${repCount} reps.`}
       >
         REPS: {repCount}
-        {targetReps ? ` / ${targetReps}` : ""} · FORM RISK:{" "}
-        {(severity * 100).toFixed(0)}%
+        {targetReps ? ` / ${targetReps}` : ""}
       </Text>
 
       {poseDetected && modelReady && onCalibratePress ? (
