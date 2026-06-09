@@ -24,6 +24,7 @@ import {
 import {
   getSquatRuntimeConfig,
   type SquatRuntimeConfig,
+  type DebugMockError,
 } from "@/lib/squat/squatConfig";
 import type {
   SquatInferenceResult,
@@ -34,6 +35,28 @@ export type { SquatInferenceResult, SquatPrediction, RepTrackerSnapshot };
 
 export interface SquatInferencePipelineOptions extends SquatRepTrackerOptions {
   runtimeConfig?: SquatRuntimeConfig;
+}
+
+function applyMockOverride(
+  prediction: SquatPrediction,
+  config: SquatRuntimeConfig,
+): SquatPrediction {
+  if (config.debugMode && config.mockFormError && config.mockFormError !== "none") {
+    const mockError = config.mockFormError;
+    const errors = {
+      knee_valgus: mockError === "knee_valgus" ? 0.8 : 0,
+      insufficient_depth: mockError === "insufficient_depth" ? 0.8 : 0,
+      forward_lean: mockError === "forward_lean" ? 0.8 : 0,
+    };
+    return {
+      ...prediction,
+      isCorrect: false,
+      confidence: 0.8,
+      incorrectProbability: 0.8,
+      errors,
+    };
+  }
+  return prediction;
 }
 
 /** Hybrid: rules override pass/fail when they flag an error; otherwise use ML. */
@@ -146,11 +169,12 @@ export class SquatInferencePipeline {
       repWindow,
       this.config,
     );
-    const prediction = predictionFromBiomech(
+    const rawPrediction = predictionFromBiomech(
       biomechErrors,
       repWindow,
       this.config,
     );
+    const prediction = applyMockOverride(rawPrediction, this.config);
 
     if (__DEV__) {
       devLog(
@@ -219,7 +243,7 @@ export class SquatInferencePipeline {
       kneeAngle: meanKneeAngle(latestFrame),
     };
 
-    const prediction =
+    const finalModelPrediction =
       this.config.formFeedbackSource === "hybrid"
         ? mergeRulesFirst(
             modelPrediction,
@@ -228,6 +252,8 @@ export class SquatInferencePipeline {
             this.config,
           )
         : modelPrediction;
+
+    const prediction = applyMockOverride(finalModelPrediction, this.config);
 
     return {
       ...prediction,

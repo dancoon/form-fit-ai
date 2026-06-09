@@ -32,6 +32,10 @@ export default function SettingsScreen() {
     toggleDeveloperMode,
     poseModelQuality,
     setPoseModelQuality,
+    debugMode,
+    toggleDebugMode,
+    mockFormError,
+    setMockFormError,
   } = useAppSettings();
   const { exportFailures } = useWorkoutSession();
 
@@ -233,9 +237,56 @@ export default function SettingsScreen() {
               </TouchableOpacity>
             ))}
           </View>
-          <Text className="mb-4 text-center text-[11px] text-white/40">
-            Rules = angles only · Hybrid = rules override ML · ML = model only
-          </Text>
+          <View className="mt-6 mb-4 flex-row items-center justify-between rounded-xl border border-yellow-500/30 bg-yellow-500/5 p-4">
+            <View>
+              <Text className="font-bold text-base text-yellow-200">
+                Debug Mode
+              </Text>
+              <Text className="text-xs text-white/50">
+                Force specific form errors for testing
+              </Text>
+            </View>
+            <Switch
+              value={debugMode}
+              onValueChange={() => void toggleDebugMode()}
+              trackColor={{ false: "#333", true: "#facc15" }}
+              thumbColor={debugMode ? "#000" : "#999"}
+              ios_backgroundColor="#333"
+            />
+          </View>
+
+          {debugMode ? (
+            <>
+              <Text className="mb-2 font-bold text-sm text-yellow-200/80 uppercase">
+                Mock form error
+              </Text>
+              <View className="mb-6 flex-row gap-2">
+                {(
+                  [
+                    ["none", "None"],
+                    ["knee_valgus", "Valgus"],
+                    ["insufficient_depth", "Depth"],
+                    ["forward_lean", "Lean"],
+                  ] as const
+                ).map(([err, label]) => (
+                  <TouchableOpacity
+                    key={err}
+                    onPress={() => void setMockFormError(err)}
+                    className={`flex-1 rounded-xl border p-3 ${
+                      mockFormError === err
+                        ? "border-yellow-400 bg-yellow-500/15"
+                        : "border-white/10 bg-white/5"
+                    }`}
+                  >
+                    <Text className="text-center font-bold text-white text-xs">
+                      {label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </>
+          ) : null}
+
           <TouchableOpacity
             onPress={() => {
               void exportFailures().then((json) => {

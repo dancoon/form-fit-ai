@@ -63,6 +63,8 @@ export interface BiomechErrorThresholds {
   depthSeverityRangeDeg: number;
 }
 
+export type DebugMockError = "none" | "knee_valgus" | "insufficient_depth" | "forward_lean";
+
 export interface SquatRuntimeConfig {
   viewAngle: ResolvedViewAngle;
   rep: RepThresholds;
@@ -70,6 +72,8 @@ export interface SquatRuntimeConfig {
   biomech: BiomechErrorThresholds;
   formFeedbackSource: FormFeedbackSource;
   pose: PoseQualityConfig;
+  debugMode?: boolean;
+  mockFormError?: DebugMockError;
 }
 
 const SIDE_REP: RepThresholds = {
@@ -162,6 +166,8 @@ export function getSquatRuntimeConfig(options?: {
   anglePreset?: ResolvedViewAngle;
   sensitivity?: SensitivityPreset;
   formFeedbackSource?: FormFeedbackSource;
+  debugMode?: boolean;
+  mockFormError?: DebugMockError;
 }): SquatRuntimeConfig {
   const viewAngle = options?.anglePreset ?? "side";
   const sensitivity = options?.sensitivity ?? "normal";
@@ -172,6 +178,8 @@ export function getSquatRuntimeConfig(options?: {
     biomech: SENSITIVITY_BIOMECH[sensitivity],
     formFeedbackSource: options?.formFeedbackSource ?? "hybrid",
     pose: { minKeyLandmarkVisibility: 0.45 },
+    debugMode: options?.debugMode ?? false,
+    mockFormError: options?.mockFormError ?? "none",
   };
 }
 

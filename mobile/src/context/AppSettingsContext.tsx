@@ -13,6 +13,7 @@ import type {
   FormFeedbackSource,
   PoseModelQuality,
   SensitivityPreset,
+  DebugMockError,
 } from "@/lib/squat/squatConfig";
 
 interface AppSettings {
@@ -28,6 +29,8 @@ interface AppSettings {
   poseModelQuality: PoseModelQuality;
   hasSeenCameraGuide: boolean;
   hasCompletedOnboarding: boolean;
+  debugMode: boolean;
+  mockFormError: DebugMockError;
   toggleVocalFeedback: () => Promise<void>;
   toggleHapticFeedback: () => Promise<void>;
   toggleLiveCues: () => Promise<void>;
@@ -40,6 +43,8 @@ interface AppSettings {
   setPoseModelQuality: (quality: PoseModelQuality) => Promise<void>;
   markCameraGuideSeen: () => Promise<void>;
   markOnboardingComplete: () => Promise<void>;
+  toggleDebugMode: () => Promise<void>;
+  setMockFormError: (error: DebugMockError) => Promise<void>;
   loading: boolean;
 }
 
@@ -58,6 +63,8 @@ const KEYS = {
   poseModel: "@pose_model_quality",
   cameraGuide: "@camera_guide_seen",
   onboarding: "@onboarding_done",
+  debug: "@debug_mode",
+  mockError: "@mock_form_error",
 } as const;
 
 async function readBool(key: string, fallback: boolean): Promise<boolean> {
@@ -90,6 +97,8 @@ export function AppSettingsProvider({
     useState<PoseModelQuality>("lite");
   const [hasSeenCameraGuide, setHasSeenCameraGuide] = useState(false);
   const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState(false);
+  const [debugMode, setDebugMode] = useState(false);
+  const [mockFormError, setMockFormErrorState] = useState<DebugMockError>("none");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -102,6 +111,17 @@ export function AppSettingsProvider({
         setRepCountOnlyModeState(await readBool(KEYS.repOnly, false));
         setHasSeenCameraGuide(await readBool(KEYS.cameraGuide, false));
         setHasCompletedOnboarding(await readBool(KEYS.onboarding, false));
+        setDebugMode(await readBool(KEYS.debug, false));
+
+        const mockErr = await AsyncStorage.getItem(KEYS.mockError);
+        if (
+          mockErr === "none" ||
+          mockErr === "knee_valgus" ||
+          mockErr === "insufficient_depth" ||
+          mockErr === "forward_lean"
+        ) {
+          setMockFormErrorState(mockErr);
+        }
 
         const cam = await AsyncStorage.getItem(KEYS.camera);
         if (cam === "front" || cam === "back") setCameraFacingState(cam);
@@ -205,6 +225,17 @@ export function AppSettingsProvider({
     await writeBool(KEYS.onboarding, true);
   }, []);
 
+  const toggleDebugMode = useCallback(async () => {
+    const next = !debugMode;
+    setDebugMode(next);
+    await writeBool(KEYS.debug, next);
+  }, [debugMode]);
+
+  const setMockFormError = useCallback(async (error: DebugMockError) => {
+    setMockFormErrorState(error);
+    await AsyncStorage.setItem(KEYS.mockError, error);
+  }, []);
+
   const value = useMemo(
     () => ({
       vocalFeedback,
@@ -219,6 +250,8 @@ export function AppSettingsProvider({
       poseModelQuality,
       hasSeenCameraGuide,
       hasCompletedOnboarding,
+      debugMode,
+      mockFormError,
       toggleVocalFeedback,
       toggleHapticFeedback,
       toggleLiveCues,
@@ -231,6 +264,8 @@ export function AppSettingsProvider({
       setPoseModelQuality,
       markCameraGuideSeen,
       markOnboardingComplete,
+      toggleDebugMode,
+      setMockFormError,
       loading,
     }),
     [
@@ -246,6 +281,8 @@ export function AppSettingsProvider({
       poseModelQuality,
       hasSeenCameraGuide,
       hasCompletedOnboarding,
+      debugMode,
+      mockFormError,
       toggleVocalFeedback,
       toggleHapticFeedback,
       toggleLiveCues,
@@ -258,6 +295,8 @@ export function AppSettingsProvider({
       setPoseModelQuality,
       markCameraGuideSeen,
       markOnboardingComplete,
+      toggleDebugMode,
+      setMockFormError,
       loading,
     ],
   );

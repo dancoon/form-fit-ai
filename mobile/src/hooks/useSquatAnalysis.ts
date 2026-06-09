@@ -26,8 +26,14 @@ import {
 } from "@/lib/squat";
 
 export function useSquatAnalysis(enabled: boolean) {
-  const { cameraAnglePreset, sensitivity, formFeedbackSource, repCountOnlyMode } =
-    useAppSettings();
+  const {
+    cameraAnglePreset,
+    sensitivity,
+    formFeedbackSource,
+    repCountOnlyMode,
+    debugMode,
+    mockFormError,
+  } = useAppSettings();
 
   const viewVoterRef = useRef(new ViewAngleVoter());
   const [detectedView, setDetectedView] = useState<ResolvedViewAngle>("side");
@@ -43,8 +49,10 @@ export function useSquatAnalysis(enabled: boolean) {
         anglePreset: activeViewAngle,
         sensitivity,
         formFeedbackSource,
+        debugMode,
+        mockFormError,
       }),
-    [activeViewAngle, sensitivity, formFeedbackSource],
+    [activeViewAngle, sensitivity, formFeedbackSource, debugMode, mockFormError],
   );
 
   const skipFormModel =
