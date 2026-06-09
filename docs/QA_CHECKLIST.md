@@ -12,7 +12,7 @@ Physical device. Run after model or pipeline changes.
 ## Model
 
 - [ ] Deep squats — no false "go deeper"
-- [ ] New TFLite — `inspect_tflite.py` reports `(1, 30, 22)`
+- [ ] New TFLite — `inspect_tflite.py` reports `(1, 45, 22)`
 
 ## Camera / UX
 

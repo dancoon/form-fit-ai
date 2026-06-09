@@ -24,7 +24,7 @@ If sequence length changed in training, update `SQUAT_SEQUENCE_LENGTH` in `mobil
 python scripts/inspect_tflite.py mobile/src/assets/models/tcn_quantized_quantized.tflite
 ```
 
-Expected input: `(1, 30, 22)`.
+Expected input: `(1, 45, 22)`.
 
 ## Device smoke test
 
