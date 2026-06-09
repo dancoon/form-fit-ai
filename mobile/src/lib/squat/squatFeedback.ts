@@ -1,9 +1,7 @@
 import { FEEDBACK } from "@/constants/feedbackStrings";
 import type { SquatErrorKey } from "@/lib/squat/constants";
 import {
-  phaseLabel,
   type RepTrackerSnapshot,
-  SquatPhase,
 } from "@/lib/squat/repDetector";
 import {
   getSquatRuntimeConfig,
@@ -23,6 +21,14 @@ const MODEL_ERROR_FEEDBACK: ReadonlyArray<{
   { key: "insufficient_depth", message: FEEDBACK.insufficientDepth },
   { key: "forward_lean", message: FEEDBACK.forwardLean },
 ];
+
+function isDescentStarting(tracker: RepTrackerSnapshot): boolean {
+  return (
+    !tracker.isSquatting &&
+    tracker.standingBaseline != null &&
+    tracker.standingBaseline - tracker.hipKneeAngle >= 12
+  );
+}
 
 export function buildModelFeedback(
   prediction: SquatPrediction,
@@ -74,19 +80,17 @@ export function repCountOnlyFeedback(): string {
 export interface TrackerFeedbackInput {
   tracker: RepTrackerSnapshot | null;
   result: SquatInferenceResult | null;
-  liveCue: string;
   repCountOnlyMode: boolean;
   activeViewAngle: ResolvedViewAngle;
 }
 
-/** Status copy while tracking (calibration, phase, between reps). */
+/** On-screen status copy (calibration + model result; minimal during the rep). */
 export function buildTrackerFeedback(input: TrackerFeedbackInput): string {
-  const { tracker, result, liveCue, repCountOnlyMode, activeViewAngle } = input;
+  const { tracker, result, repCountOnlyMode, activeViewAngle } = input;
 
   if (repCountOnlyMode && tracker && tracker.repCount > 0) {
     return repCountOnlyFeedback();
   }
-  if (liveCue) return liveCue;
   if (result?.feedback) return result.feedback;
   if (!tracker) return "";
 
@@ -98,25 +102,35 @@ export function buildTrackerFeedback(input: TrackerFeedbackInput): string {
       ? FEEDBACK.calibrateFront
       : FEEDBACK.calibrateSide;
   }
-  if (tracker.isSquatting) {
-    const phaseMsg =
-      tracker.phase === SquatPhase.Bottom
-        ? FEEDBACK.goLower
-        : tracker.phase === SquatPhase.Concentric
-          ? FEEDBACK.chestUp
-          : tracker.phase === SquatPhase.Eccentric
-            ? FEEDBACK.controlDescent
-            : phaseLabel(tracker.phase);
-    return `${phaseMsg} (${Math.round(tracker.repProgress * 100)}%)`;
+  if (tracker.isSquatting) return "";
+  if (isDescentStarting(tracker)) return FEEDBACK.nextRep;
+  if (tracker.repCount === 0) return FEEDBACK.calibratedReady;
+  return "";
+}
+
+/**
+ * TTS-only copy: calibration prompts, "Next rep" at descent, model feedback after each rep.
+ */
+export function buildVocalFeedback(input: TrackerFeedbackInput): string {
+  const { tracker, result, repCountOnlyMode, activeViewAngle } = input;
+
+  if (repCountOnlyMode && tracker && tracker.repCount > 0) {
+    return repCountOnlyFeedback();
   }
-  if (tracker.repCount > 0) {
-    return FEEDBACK.repComplete(tracker.repCount);
+  if (result?.feedback) return result.feedback;
+  if (!tracker) return "";
+
+  if (!tracker.calibrationRequested) {
+    return FEEDBACK.holdStillToCalibrate;
   }
-  if (
-    tracker.standingBaseline != null &&
-    tracker.standingBaseline - tracker.hipKneeAngle >= 12
-  ) {
-    return FEEDBACK.descentDetected;
+  if (!tracker.calibrated) {
+    return activeViewAngle === "front"
+      ? FEEDBACK.calibrateFront
+      : FEEDBACK.calibrateSide;
   }
-  return FEEDBACK.calibratedReady;
+  if (isDescentStarting(tracker)) return FEEDBACK.nextRep;
+  if (!tracker.isSquatting && tracker.repCount === 0) {
+    return FEEDBACK.calibratedReady;
+  }
+  return "";
 }

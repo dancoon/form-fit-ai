@@ -8,9 +8,9 @@ import type { TfliteModel } from "react-native-fast-tflite";
 import { useAppSettings } from "@/context/AppSettingsContext";
 import { useSquatModel } from "@/hooks/useSquatModel";
 import { logError } from "@/lib/logging";
-import { getLiveFormCue } from "@/lib/squat/liveFormCues";
 import {
   buildTrackerFeedback,
+  buildVocalFeedback,
   getSquatRuntimeConfig,
   hasTrackerUiChanged,
   phaseLabel,
@@ -26,8 +26,7 @@ import {
 } from "@/lib/squat";
 
 export function useSquatAnalysis(enabled: boolean) {
-  const { cameraAnglePreset, sensitivity, liveCuesEnabled, repCountOnlyMode } =
-    useAppSettings();
+  const { cameraAnglePreset, sensitivity, repCountOnlyMode } = useAppSettings();
 
   const viewVoterRef = useRef(new ViewAngleVoter());
   const [detectedView, setDetectedView] = useState<ResolvedViewAngle>("side");
@@ -49,7 +48,6 @@ export function useSquatAnalysis(enabled: boolean) {
     Array<{ window: Float32Array[]; snapshot: RepTrackerSnapshot }>
   >([]);
   const wasSquattingRef = useRef(false);
-  const lastLiveCueRef = useRef<string>("");
 
   const {
     loadState,
@@ -65,8 +63,6 @@ export function useSquatAnalysis(enabled: boolean) {
 
   const [result, setResult] = useState<SquatInferenceResult | null>(null);
   const [tracker, setTracker] = useState<RepTrackerSnapshot | null>(null);
-  const [liveCue, setLiveCue] = useState<string>("");
-
   const publishTracker = useCallback((snapshot: RepTrackerSnapshot) => {
     trackerLatestRef.current = snapshot;
     setTracker((prev) =>
@@ -98,7 +94,6 @@ export function useSquatAnalysis(enabled: boolean) {
       pendingRepsRef.current = [];
       setResult(null);
       setTracker(null);
-      setLiveCue("");
       wasSquattingRef.current = false;
     }
   }, [enabled]);
@@ -177,20 +172,8 @@ export function useSquatAnalysis(enabled: boolean) {
 
       if (snapshot.isSquatting && !wasSquattingRef.current) {
         setResult(null);
-        lastLiveCueRef.current = "";
       }
       wasSquattingRef.current = snapshot.isSquatting;
-
-      if (liveCuesEnabled && snapshot.isSquatting) {
-        const cue = getLiveFormCue(snapshot, rawLandmarks, runtimeConfig.rep);
-        if (cue && cue.message !== lastLiveCueRef.current) {
-          lastLiveCueRef.current = cue.message;
-          setLiveCue(cue.message);
-        }
-      } else if (!snapshot.isSquatting) {
-        setLiveCue("");
-        lastLiveCueRef.current = "";
-      }
 
       if (modelLoadStatus !== "loaded" || !snapshot.repWindowReady) return;
 
@@ -211,7 +194,6 @@ export function useSquatAnalysis(enabled: boolean) {
       modelLoadStatus,
       modelReady,
       runtimeConfig,
-      liveCuesEnabled,
       runInference,
       publishTracker,
       modelRef,
@@ -220,7 +202,10 @@ export function useSquatAnalysis(enabled: boolean) {
 
   const overlaySeverityRef = useRef(new Float32Array(4));
   const overlaySeverity = useMemo(() => {
-    if (!result) return overlaySeverityRef.current;
+    if (!result) {
+      overlaySeverityRef.current.fill(0);
+      return overlaySeverityRef.current;
+    }
     const next = predictionToSeverity(result);
     overlaySeverityRef.current.set(next);
     return overlaySeverityRef.current;
@@ -231,16 +216,24 @@ export function useSquatAnalysis(enabled: boolean) {
     [result, runtimeConfig],
   );
 
+  const feedbackInput = useMemo(
+    () => ({
+      tracker: trackerLatestRef.current,
+      result,
+      repCountOnlyMode: repCountOnly,
+      activeViewAngle,
+    }),
+    [tracker, result, repCountOnly, activeViewAngle],
+  );
+
   const feedback = useMemo(
-    () =>
-      buildTrackerFeedback({
-        tracker: trackerLatestRef.current,
-        result,
-        liveCue,
-        repCountOnlyMode: repCountOnly,
-        activeViewAngle,
-      }),
-    [tracker, result, liveCue, repCountOnly, activeViewAngle],
+    () => buildTrackerFeedback(feedbackInput),
+    [feedbackInput],
+  );
+
+  const vocalFeedback = useMemo(
+    () => buildVocalFeedback(feedbackInput),
+    [feedbackInput],
   );
 
   const displayTracker = tracker ?? trackerLatestRef.current;
@@ -257,7 +250,6 @@ export function useSquatAnalysis(enabled: boolean) {
     pendingRepsRef.current = [];
     setResult(null);
     setTracker(null);
-    setLiveCue("");
     wasSquattingRef.current = false;
   }, []);
 
@@ -268,6 +260,7 @@ export function useSquatAnalysis(enabled: boolean) {
     overlaySeverity,
     severity,
     feedback,
+    vocalFeedback,
     result,
     tracker: displayTracker,
     modelReady,

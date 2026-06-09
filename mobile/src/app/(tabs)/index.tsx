@@ -44,7 +44,7 @@ export default function HomeScreen() {
 
   const {
     cameraFacing,
-    vocalFeedback,
+    vocalFeedback: vocalFeedbackEnabled,
     hapticFeedback,
     developerMode,
     hasSeenCameraGuide,
@@ -72,6 +72,7 @@ export default function HomeScreen() {
     overlaySeverity,
     severity,
     feedback,
+    vocalFeedback: speakableFeedback,
     result,
     modelReady,
     modelLoading,
@@ -143,12 +144,15 @@ export default function HomeScreen() {
     ],
   );
 
-  useVocalFeedback(feedback, vocalFeedback && poseTrackingEnabled);
+  useVocalFeedback(
+    speakableFeedback,
+    vocalFeedbackEnabled && poseTrackingEnabled,
+  );
 
   useEffect(() => {
-    if (!showCameraGuide || !vocalFeedback) return;
+    if (!showCameraGuide || !vocalFeedbackEnabled) return;
     speakFeedback(FEEDBACK.standSideways);
-  }, [showCameraGuide, vocalFeedback]);
+  }, [showCameraGuide, vocalFeedbackEnabled]);
 
   const { resetRepEffectRefs } = useWorkoutRepEffects({
     repCount,

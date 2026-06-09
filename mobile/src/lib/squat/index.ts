@@ -5,6 +5,7 @@ export { SQUAT_SEQUENCE_LENGTH, type SquatErrorKey } from "@/lib/squat/constants
 export {
   formatSquatFeedback,
   buildTrackerFeedback,
+  buildVocalFeedback,
   repCountOnlyFeedback,
 } from "@/lib/squat/squatFeedback";
 export { loadSquatModel } from "@/lib/squat/loadSquatModel";

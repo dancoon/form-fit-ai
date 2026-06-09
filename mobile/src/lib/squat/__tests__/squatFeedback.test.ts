@@ -3,6 +3,7 @@ import { FEEDBACK } from "@/constants/feedbackStrings";
 import { SquatPhase } from "@/lib/squat/repDetector";
 import {
   buildTrackerFeedback,
+  buildVocalFeedback,
   formatSquatFeedback,
 } from "@/lib/squat/squatFeedback";
 import type { RepTrackerSnapshot } from "@/lib/squat/repDetector";
@@ -32,14 +33,17 @@ function minimalTracker(
   };
 }
 
+const baseInput = {
+  result: null,
+  repCountOnlyMode: false,
+  activeViewAngle: "side" as const,
+};
+
 describe("buildTrackerFeedback", () => {
   test("prompts to hold still when auto-calibration not started", () => {
     const msg = buildTrackerFeedback({
       tracker: minimalTracker(),
-      result: null,
-      liveCue: "",
-      repCountOnlyMode: false,
-      activeViewAngle: "side",
+      ...baseInput,
     });
     expect(msg).toBe(FEEDBACK.holdStillToCalibrate);
   });
@@ -47,42 +51,82 @@ describe("buildTrackerFeedback", () => {
   test("side vs front calibration copy", () => {
     const side = buildTrackerFeedback({
       tracker: minimalTracker({ calibrationRequested: true }),
-      result: null,
-      liveCue: "",
-      repCountOnlyMode: false,
-      activeViewAngle: "side",
+      ...baseInput,
     });
     const front = buildTrackerFeedback({
       tracker: minimalTracker({ calibrationRequested: true }),
-      result: null,
-      liveCue: "",
-      repCountOnlyMode: false,
+      ...baseInput,
       activeViewAngle: "front",
     });
     expect(side).toBe(FEEDBACK.calibrateSide);
     expect(front).toBe(FEEDBACK.calibrateFront);
   });
 
-  test("live cue takes precedence", () => {
-    const msg = buildTrackerFeedback({
-      tracker: minimalTracker({ calibrated: true, isSquatting: true }),
-      result: null,
-      liveCue: "Knees out",
-      repCountOnlyMode: false,
-      activeViewAngle: "side",
+  test("next rep at descent, silent during squat", () => {
+    const descent = buildTrackerFeedback({
+      tracker: minimalTracker({
+        calibrated: true,
+        calibrationRequested: true,
+        standingBaseline: 170,
+        hipKneeAngle: 155,
+      }),
+      ...baseInput,
     });
-    expect(msg).toBe("Knees out");
+    const squatting = buildTrackerFeedback({
+      tracker: minimalTracker({
+        calibrated: true,
+        calibrationRequested: true,
+        isSquatting: true,
+      }),
+      ...baseInput,
+    });
+    expect(descent).toBe(FEEDBACK.nextRep);
+    expect(squatting).toBe("");
+  });
+
+  test("model feedback takes precedence", () => {
+    const msg = buildTrackerFeedback({
+      tracker: minimalTracker({ calibrated: true, repCount: 1 }),
+      result: {
+        isCorrect: true,
+        confidence: 0.9,
+        incorrectProbability: 0.1,
+        kneeAngle: 100,
+        errors: {
+          knee_valgus: 0,
+          insufficient_depth: 0,
+          forward_lean: 0,
+        },
+        feedback: FEEDBACK.goodForm(90),
+        repNumber: 1,
+        phase: SquatPhase.Standing,
+      },
+      ...baseInput,
+    });
+    expect(msg).toBe(FEEDBACK.goodForm(90));
   });
 
   test("rep count only mode after reps", () => {
     const msg = buildTrackerFeedback({
       tracker: minimalTracker({ repCount: 2 }),
-      result: null,
-      liveCue: "",
+      ...baseInput,
       repCountOnlyMode: true,
-      activeViewAngle: "side",
     });
     expect(msg).toBe(FEEDBACK.repCountOnly);
+  });
+});
+
+describe("buildVocalFeedback", () => {
+  test("silent between reps until model result", () => {
+    const msg = buildVocalFeedback({
+      tracker: minimalTracker({
+        calibrated: true,
+        calibrationRequested: true,
+        repCount: 1,
+      }),
+      ...baseInput,
+    });
+    expect(msg).toBe("");
   });
 });
 

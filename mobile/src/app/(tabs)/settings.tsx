@@ -17,14 +17,12 @@ export default function SettingsScreen() {
   const {
     vocalFeedback,
     hapticFeedback,
-    liveCuesEnabled,
     cameraFacing,
     cameraAnglePreset,
     sensitivity,
     developerMode,
     toggleVocalFeedback,
     toggleHapticFeedback,
-    toggleLiveCues,
     setCameraFacing,
     setCameraAnglePreset,
     setSensitivity,
@@ -71,13 +69,6 @@ export default function SettingsScreen() {
       isToggle: true,
       toggleValue: hapticFeedback,
       onToggle: () => void toggleHapticFeedback(),
-    },
-    {
-      title: "Live form cues",
-      icon: "paperplane.fill",
-      isToggle: true,
-      toggleValue: liveCuesEnabled,
-      onToggle: () => void toggleLiveCues(),
     },
     {
       title: "Developer mode",

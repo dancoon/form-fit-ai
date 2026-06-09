@@ -7637,6 +7637,24 @@
         1
       ],
       "notes": ""
+    },
+    {
+      "rep_index": 1,
+      "start_frame": 31,
+      "end_frame": 42,
+      "label": 0,
+      "is_correct": true,
+      "errors": {
+        "knee_valgus": false,
+        "insufficient_depth": false,
+        "forward_lean": false
+      },
+      "error_vector": [
+        0,
+        0,
+        0
+      ],
+      "notes": ""
     }
   ]
 }

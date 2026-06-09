@@ -20,10 +20,8 @@ export const FEEDBACK = {
 
   calibratedReady: "All set! Start squatting when you're ready.",
 
-  descentDetected: "Good start — keep going",
-
-  repComplete: (n: number) =>
-    `Great rep! That's ${n}${n === 1 ? "" : ""}. Keep it up!`,
+  /** Spoken once when descent begins; form feedback comes after the rep from the model. */
+  nextRep: "Next rep",
 
   repCountOnly:
     "We're counting reps, but form feedback is temporarily unavailable.",
