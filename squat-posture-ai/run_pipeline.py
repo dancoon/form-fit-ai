@@ -1,6 +1,8 @@
 """Run full training pipeline."""
 from __future__ import annotations
 
+from pathlib import Path
+
 import numpy as np
 import tensorflow as tf
 
@@ -26,7 +28,7 @@ def main():
     print(f"Input shape: {splits['X_train'].shape[1:]}")
 
     scaler_path = pipeline.export_feature_scaler(f"{cfg.results_dir}/feature_scaler.json")
-    print(f"Scaler exported → {scaler_path} (copy to app assets after retrain)")
+    print(f"Scaler exported -> {scaler_path} (copy to app assets after retrain)")
 
     factory = ModelFactory(cfg)
     models = factory.get_all_models()
@@ -37,6 +39,10 @@ def main():
     evaluator = EvaluationPipeline(cfg)
     metrics = evaluator.evaluate_all(dl_results, baseline_results, splits)
     evaluator.print_comparison_table()
+
+    results_path = Path(cfg.results_dir) / "model_comparison.csv"
+    metrics.to_csv(results_path, index=False)
+    print(f"Results saved -> {results_path}")
     print('Pipeline complete. Export BiGRU: python export_model.py --model BiGRU')
     return metrics
 

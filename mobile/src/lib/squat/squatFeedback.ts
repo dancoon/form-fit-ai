@@ -36,7 +36,7 @@ export function buildModelFeedback(
 ): string {
   const t = config.inference.errorThreshold;
   if (prediction.isCorrect) {
-    return FEEDBACK.goodForm(Math.round(prediction.confidence * 100));
+    return FEEDBACK.goodForm;
   }
 
   const messages: string[] = [];
@@ -57,12 +57,10 @@ export function buildModelFeedback(
 
   const top = ranked[0];
   if (top && top.score >= 0.2) {
-    return `${top.message} (${Math.round(top.score * 100)}%)`;
+    return top.message;
   }
 
-  return FEEDBACK.formNeedsImprovement(
-    Math.round(prediction.incorrectProbability * 100),
-  );
+  return FEEDBACK.formNeedsImprovement;
 }
 
 /** Exported for unit tests. */
@@ -71,6 +69,30 @@ export function formatSquatFeedback(
   config: SquatRuntimeConfig = getSquatRuntimeConfig(),
 ): string {
   return buildModelFeedback(prediction, config);
+}
+
+/** Dev-only: model error head scores as a single line. */
+export function formatDevErrorScores(
+  errors: Record<SquatErrorKey, number>,
+): string {
+  return `Valgus ${Math.round(errors.knee_valgus * 100)}% · Depth ${Math.round(errors.insufficient_depth * 100)}% · Lean ${Math.round(errors.forward_lean * 100)}%`;
+}
+
+/** User-facing issue copy from stored per-rep error scores (e.g. workout summary). */
+export function feedbackFromRepErrors(
+  errors: Record<SquatErrorKey, number>,
+  config: SquatRuntimeConfig = getSquatRuntimeConfig(),
+): string {
+  return buildModelFeedback(
+    {
+      isCorrect: false,
+      confidence: 0,
+      incorrectProbability: 0.5,
+      errors,
+      kneeAngle: 0,
+    },
+    config,
+  );
 }
 
 export function repCountOnlyFeedback(): string {

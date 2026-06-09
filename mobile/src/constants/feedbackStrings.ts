@@ -30,9 +30,8 @@ export const FEEDBACK = {
   insufficientDepth: "Almost there — go a bit deeper",
   forwardLean: "Stay tall and keep your chest up",
 
-  goodForm: (pct: number) =>
-    `Excellent form! (${pct}% confidence)`,
+  goodForm: "Nice work — great form!",
 
-  formNeedsImprovement: (pct: number) =>
-    `Good effort. Let's clean up a few things (${pct}% flagged).`,
+  formNeedsImprovement:
+    "Good effort — focus on form on your next rep.",
 } as const;

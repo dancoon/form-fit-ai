@@ -248,7 +248,6 @@ describe("formatSquatFeedback", () => {
         forward_lean: 0.18,
       },
     });
-    expect(msg).toContain(FEEDBACK.insufficientDepth);
-    expect(msg).toContain("42%");
+    expect(msg).toBe(FEEDBACK.insufficientDepth);
   });
 });

@@ -1,6 +1,10 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Text, TouchableOpacity, View } from "react-native";
 import { useWorkoutSession } from "@/context/WorkoutSessionContext";
+import {
+  feedbackFromRepErrors,
+  formatDevErrorScores,
+} from "@/lib/squat/squatFeedback";
 
 export default function WorkoutSummaryScreen() {
   const router = useRouter();
@@ -31,14 +35,28 @@ export default function WorkoutSummaryScreen() {
       {reps.length > 0 ? (
         <View className="rounded-2xl bg-white/5 p-4">
           {reps.map((r) => (
-            <Text key={r.repNumber} className="mb-2 text-sm text-white/80">
-              Rep {r.repNumber}:{" "}
-              {r.isCorrect === null
-                ? "—"
-                : r.isCorrect
-                  ? "Good"
-                  : "Issue detected"}
-            </Text>
+            <View key={r.repNumber} className="mb-3">
+              <Text className="text-sm text-white/80">
+                Rep {r.repNumber}:{" "}
+                {r.isCorrect === null
+                  ? "—"
+                  : r.isCorrect
+                    ? "Good"
+                    : "Form issue"}
+              </Text>
+              {r.isCorrect === false && r.errors ? (
+                <>
+                  <Text className="mt-0.5 text-sm text-yellow-300">
+                    {feedbackFromRepErrors(r.errors)}
+                  </Text>
+                  {__DEV__ ? (
+                    <Text className="mt-0.5 text-white/40 text-xs">
+                      {formatDevErrorScores(r.errors)}
+                    </Text>
+                  ) : null}
+                </>
+              ) : null}
+            </View>
           ))}
         </View>
       ) : null}

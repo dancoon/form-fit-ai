@@ -97,13 +97,13 @@ describe("buildTrackerFeedback", () => {
           insufficient_depth: 0,
           forward_lean: 0,
         },
-        feedback: FEEDBACK.goodForm(90),
+        feedback: FEEDBACK.goodForm,
         repNumber: 1,
         phase: SquatPhase.Standing,
       },
       ...baseInput,
     });
-    expect(msg).toBe(FEEDBACK.goodForm(90));
+    expect(msg).toBe(FEEDBACK.goodForm);
   });
 
   test("rep count only mode after reps", () => {
