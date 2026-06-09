@@ -114,8 +114,10 @@ def export_model(
 
         mobile_model_path = mobile_dir / mobile_model_name
         shutil.copy2(deploy_path, mobile_model_path)
+        shutil.copy2(deploy_path, mobile_dir / "squat_model.tflite")
         shutil.copy2(scaler_path, mobile_dir / "feature_scaler.json")
         print(f"Copied model -> {mobile_model_path}")
+        print(f"Copied model -> {mobile_dir / 'squat_model.tflite'}")
         print(f"Copied scaler -> {mobile_dir / 'feature_scaler.json'}")
 
     return deploy_path

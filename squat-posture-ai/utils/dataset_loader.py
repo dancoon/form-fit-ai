@@ -39,6 +39,31 @@ def load_annotated_dataset(path: str | Path) -> tuple[np.ndarray, np.ndarray, np
     return raw_sequences, labels, error_vectors
 
 
+def resample_raw_sequences(
+    raw_sequences: np.ndarray,
+    target_length: int,
+    *,
+    show_progress: bool = False,
+    desc: str = "Resampling sequences",
+) -> np.ndarray:
+    """Linearly resample raw landmark sequences to a fixed frame count."""
+    if raw_sequences.size == 0:
+        return np.zeros((0, target_length, raw_sequences.shape[-1]), dtype=np.float32)
+    if raw_sequences.shape[1] == target_length:
+        return raw_sequences.astype(np.float32)
+
+    temporal_proc = TemporalProcessor()
+    iterator = range(len(raw_sequences))
+    if show_progress:
+        iterator = tqdm(iterator, desc=desc)
+
+    resampled = [
+        temporal_proc.normalize_sequence_length(raw_sequences[i], target_length)
+        for i in iterator
+    ]
+    return np.array(resampled, dtype=np.float32)
+
+
 def extract_feature_sequences(
     raw_sequences: np.ndarray,
     *,
@@ -61,7 +86,7 @@ def extract_feature_sequences(
         feature_sequences.append(feat_seq)
 
     if not feature_sequences:
-        return np.zeros((0, 45, 22), dtype=np.float32)
+        return np.zeros((0, 0, 22), dtype=np.float32)
     return np.array(feature_sequences, dtype=np.float32)
 
 
@@ -72,6 +97,17 @@ def prepare_training_splits(cfg: Config) -> tuple[Dict[str, np.ndarray], DataPip
 
     print(f"Loaded: {raw_sequences.shape[0]} annotated sequences from {path}")
     print(f"Shape: {raw_sequences.shape}")
+    if raw_sequences.ndim == 3 and raw_sequences.shape[1] != cfg.sequence_length:
+        print(
+            f"Resampling sequences {raw_sequences.shape[1]} -> {cfg.sequence_length} "
+            "(sync with mobile SQUAT_SEQUENCE_LENGTH)"
+        )
+        raw_sequences = resample_raw_sequences(
+            raw_sequences,
+            cfg.sequence_length,
+            show_progress=True,
+        )
+        print(f"Resampled shape: {raw_sequences.shape}")
     print(
         f"Labels distribution: correct={np.sum(labels == 0)}, "
         f"incorrect={np.sum(labels == 1)}"
@@ -134,6 +170,9 @@ def load_training_data(cfg: Config) -> tuple[np.ndarray, np.ndarray, np.ndarray,
 
     print(f"Loaded: {raw_sequences.shape[0]} annotated sequences from {path}")
     print(f"Shape: {raw_sequences.shape}")
+    if raw_sequences.ndim == 3 and raw_sequences.shape[1] != cfg.sequence_length:
+        raw_sequences = resample_raw_sequences(raw_sequences, cfg.sequence_length)
+        print(f"Resampled shape: {raw_sequences.shape}")
     print(
         f"Labels distribution: correct={np.sum(labels == 0)}, "
         f"incorrect={np.sum(labels == 1)}"

@@ -11,7 +11,9 @@ from utils.augmentation import (
 from utils.config import Config
 
 
-def _sample_sequence(length: int = 45) -> np.ndarray:
+def _sample_sequence(length: int | None = None) -> np.ndarray:
+    if length is None:
+        length = Config().sequence_length
     seq = np.zeros((length, 132), dtype=np.float32)
     for lm in range(33):
         seq[:, lm * 4] = 0.4 + lm * 0.01
@@ -39,13 +41,15 @@ def test_jitter_preserves_visibility():
 def test_time_warp_keeps_sequence_length():
     seq = _sample_sequence()
     rng = np.random.default_rng(1)
-    warped = time_warp_sequence(seq, rng, speed_min=0.8, speed_max=1.2, target_length=45)
+    warped = time_warp_sequence(
+        seq, rng, speed_min=0.8, speed_max=1.2, target_length=Config().sequence_length
+    )
     assert warped.shape == seq.shape
 
 
 def test_expand_training_set_increases_train_size():
     cfg = Config(enable_train_augmentation=True)
-    raw = np.stack([_sample_sequence(), _sample_sequence(45)], axis=0)
+    raw = np.stack([_sample_sequence(), _sample_sequence()], axis=0)
     labels = np.array([0, 1], dtype=np.int32)
     errors = np.array([[0, 0, 0], [1, 0, 0]], dtype=np.float32)
 

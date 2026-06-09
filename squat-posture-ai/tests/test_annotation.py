@@ -133,11 +133,11 @@ def test_exporter_produces_training_arrays(tmp_path: Path):
     store.save()
 
     exporter = DataExporter(cfg)
-    path = exporter.export_for_training(extracted, store.annotations, target_sequence_length=45)
+    path = exporter.export_for_training(extracted, store.annotations, target_sequence_length=30)
     assert path
 
     data = np.load(path)
-    assert data["sequences"].shape == (1, 45, 132)
+    assert data["sequences"].shape == (1, 30, 132)
     assert data["labels"][0] == 0
     assert data["error_vectors"].shape == (1, 3)
 

@@ -47,7 +47,7 @@ class AnnotationConfig:
     video_display_rotation_cw: int = 90
 
     # Must match utils.config.Config.sequence_length and mobile SQUAT_SEQUENCE_LENGTH
-    target_sequence_length: int = 45
+    target_sequence_length: int = 30
 
     base_dir: Path = field(default_factory=lambda: Path("data"))
     video_dir: Path | None = None

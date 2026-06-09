@@ -3,7 +3,7 @@
 Usage:
   python scripts/compare_features.py notebook_features.json app_features.json
 
-Each JSON file: { "features": [[...22 floats], ...45 frames] }
+Each JSON file: { "features": [[...22 floats], ...30 frames] }
 """
 
 import json

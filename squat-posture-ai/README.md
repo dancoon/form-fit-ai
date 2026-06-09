@@ -77,4 +77,4 @@ pytest
 
 ## Mobile export
 
-[../docs/MODEL_DEPLOY.md](../docs/MODEL_DEPLOY.md) — copy TFLite + scaler to `mobile/src/assets/models/`. Keep `sequence_length = 45` in sync with `mobile/src/lib/squat/constants.ts`.
+[../docs/MODEL_DEPLOY.md](../docs/MODEL_DEPLOY.md) — copy TFLite + scaler to `mobile/src/assets/models/`. Keep `sequence_length = 30` in sync with `mobile/src/lib/squat/constants.ts`.

@@ -29,7 +29,7 @@ SquatRepTracker
     │
     └── Rep-completion loop (once per rep)
             ↓
-        resample → 45 frames (in repDetector)
+        resample → 30 frames (in repDetector)
             ↓
         SquatInferencePipeline.runOnRepWindow
             ↓
@@ -95,4 +95,4 @@ Full map: [mobile/src/lib/squat/README.md](../mobile/src/lib/squat/README.md)
 
 `mobile/src/assets/models/` — `.tflite`, `.task`, `feature_scaler.json`
 
-`SQUAT_SEQUENCE_LENGTH` (45) must match training export.
+`SQUAT_SEQUENCE_LENGTH` (30) must match training export.

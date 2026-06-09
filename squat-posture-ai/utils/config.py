@@ -26,10 +26,10 @@ class Config:
     raw_feature_dim: int = 33 * 4  # 132
 
     # Sequence modeling — MUST match mobile SQUAT_SEQUENCE_LENGTH when exporting TFLite
-    sequence_length: int = 45
+    sequence_length: int = 30
     sequence_stride: int = 5
-    min_sequence_length: int = 45  # fixed length for training (matches on-device resampling)
-    max_sequence_length: int = 45
+    min_sequence_length: int = 30  # fixed length for training (matches on-device resampling)
+    max_sequence_length: int = 30
 
     # Engineered features
     num_joint_angles: int = 10
