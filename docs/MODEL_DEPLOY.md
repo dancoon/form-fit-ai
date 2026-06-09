@@ -4,14 +4,21 @@ Source: `ml/train.ipynb` or `squat-posture-ai/notebooks/train.ipynb`
 
 ## Export
 
-- Quantized `.tflite` (notebook export cells)
-- `feature_scaler.json` (data-split step)
+```bash
+cd squat-posture-ai
+python export_model.py --model BiGRU
+```
+
+Deploys **float32** TFLite to `mobile/src/assets/models/squat_model.tflite` (default). Pass `--quantize` to also write an optional `bigru_quantized.tflite`.
+
+- `squat_model.tflite` — float32, loaded by the app
+- `feature_scaler.json` — from the training split
 
 ## Copy
 
 | Asset | Destination |
 |-------|---------------|
-| `*.tflite` | `mobile/src/assets/models/tcn_quantized_quantized.tflite` |
+| float32 `.tflite` | `mobile/src/assets/models/squat_model.tflite` |
 | `feature_scaler.json` | `mobile/src/assets/models/feature_scaler.json` |
 
 ## Constants
@@ -21,7 +28,7 @@ If sequence length changed in training, update `SQUAT_SEQUENCE_LENGTH` in `mobil
 ## Verify
 
 ```bash
-python scripts/inspect_tflite.py mobile/src/assets/models/tcn_quantized_quantized.tflite
+python scripts/inspect_tflite.py mobile/src/assets/models/squat_model.tflite
 ```
 
 Expected input: `(1, 45, 22)`.

@@ -51,7 +51,7 @@ def export_model(
     model_name: str,
     *,
     copy_mobile: bool = True,
-    quantize: bool = True,
+    quantize: bool = False,
 ) -> Path:
     cfg = Config()
     tf.random.set_seed(cfg.random_state)
@@ -85,7 +85,8 @@ def export_model(
         f"({std_result['size_mb']:.2f} MB, {std_result['latency_ms']:.2f} ms)"
     )
 
-    deploy_path = Path(std_result["filepath"])
+    float_path = Path(std_result["filepath"])
+    deploy_path = float_path
     if quantize:
         q_result = converter.convert_model(model, model_name, quantize=True)
         if not q_result["success"]:
@@ -96,29 +97,34 @@ def export_model(
             f"({q_result['size_mb']:.2f} MB, {q_result['latency_ms']:.2f} ms)"
         )
 
+    # Mobile bundles float32 (squat_model.tflite); verify that artifact.
     acc = verify_tflite_accuracy(
-        str(deploy_path),
+        str(float_path),
         splits["X_test"],
         splits["y_test"],
         model_name,
     )
-    print(f"TFLite test accuracy: {acc['tflite_accuracy']:.4f}")
+    print(f"TFLite test accuracy (float32): {acc['tflite_accuracy']:.4f}")
 
     if copy_mobile:
         mobile_dir = _mobile_models_dir()
         mobile_dir.mkdir(parents=True, exist_ok=True)
 
-        mobile_model_name = f"{model_name.lower().replace('-', '_')}_quantized.tflite"
-        if not quantize:
-            mobile_model_name = f"{model_name.lower().replace('-', '_')}.tflite"
+        stem = model_name.lower().replace("-", "_")
+        float_mobile_name = f"{stem}.tflite"
+        float_mobile_path = mobile_dir / float_mobile_name
 
-        mobile_model_path = mobile_dir / mobile_model_name
-        shutil.copy2(deploy_path, mobile_model_path)
-        shutil.copy2(deploy_path, mobile_dir / "squat_model.tflite")
+        shutil.copy2(float_path, float_mobile_path)
+        shutil.copy2(float_path, mobile_dir / "squat_model.tflite")
         shutil.copy2(scaler_path, mobile_dir / "feature_scaler.json")
-        print(f"Copied model -> {mobile_model_path}")
-        print(f"Copied model -> {mobile_dir / 'squat_model.tflite'}")
+        print(f"Copied model -> {float_mobile_path}")
+        print(f"Copied model -> {mobile_dir / 'squat_model.tflite'} (float32, used by app)")
         print(f"Copied scaler -> {mobile_dir / 'feature_scaler.json'}")
+
+        if quantize and deploy_path != float_path:
+            quant_mobile_path = mobile_dir / f"{stem}_quantized.tflite"
+            shutil.copy2(deploy_path, quant_mobile_path)
+            print(f"Copied model -> {quant_mobile_path} (optional quantized)")
 
     return deploy_path
 
@@ -137,16 +143,16 @@ def main() -> None:
         help="Skip copying assets to mobile/src/assets/models/",
     )
     parser.add_argument(
-        "--no-quantize",
+        "--quantize",
         action="store_true",
-        help="Deploy float32 TFLite instead of quantized",
+        help="Also export a quantized TFLite (mobile still uses float32 squat_model.tflite)",
     )
     args = parser.parse_args()
 
     export_model(
         args.model,
         copy_mobile=not args.no_copy_mobile,
-        quantize=not args.no_quantize,
+        quantize=args.quantize,
     )
     print("\nExport complete.")
     if not args.no_copy_mobile:
