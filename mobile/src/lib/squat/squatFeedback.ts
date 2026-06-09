@@ -131,16 +131,20 @@ export function buildTrackerFeedback(input: TrackerFeedbackInput): string {
 }
 
 /**
- * TTS-only copy: calibration prompts, "Next rep" at descent, model feedback after each rep.
+ * TTS-only copy — kept minimal during sets:
+ * calibration + ready once, form corrections after a rep (no praise, no "next rep").
  */
 export function buildVocalFeedback(input: TrackerFeedbackInput): string {
   const { tracker, result, repCountOnlyMode, activeViewAngle } = input;
+  if (!tracker) return "";
 
-  if (result?.feedback) return result.feedback;
-  if (repCountOnlyMode && tracker && tracker.repCount > 0) {
+  if (tracker.isSquatting) return "";
+
+  if (result?.feedback && !result.isCorrect) return result.feedback;
+
+  if (repCountOnlyMode && tracker.repCount > 0) {
     return repCountOnlyFeedback();
   }
-  if (!tracker) return "";
 
   if (!tracker.calibrationRequested) {
     return FEEDBACK.holdStillToCalibrate;
@@ -150,9 +154,6 @@ export function buildVocalFeedback(input: TrackerFeedbackInput): string {
       ? FEEDBACK.calibrateFront
       : FEEDBACK.calibrateSide;
   }
-  if (isDescentStarting(tracker)) return FEEDBACK.nextRep;
-  if (!tracker.isSquatting && tracker.repCount === 0) {
-    return FEEDBACK.calibratedReady;
-  }
+  if (tracker.repCount === 0) return FEEDBACK.calibratedReady;
   return "";
 }

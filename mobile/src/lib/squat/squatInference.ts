@@ -37,7 +37,7 @@ export interface SquatInferencePipelineOptions extends SquatRepTrackerOptions {
 }
 
 /** Hybrid: rules override pass/fail when they flag an error; otherwise use ML. */
-function mergeRulesFirst(
+export function mergeRulesFirst(
   model: SquatPrediction,
   biomechErrors: SquatPrediction["errors"],
   repWindow: Float32Array[],

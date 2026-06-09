@@ -117,7 +117,7 @@ describe("buildTrackerFeedback", () => {
 });
 
 describe("buildVocalFeedback", () => {
-  test("silent between reps until model result", () => {
+  test("silent between reps", () => {
     const msg = buildVocalFeedback({
       tracker: minimalTracker({
         calibrated: true,
@@ -127,6 +127,79 @@ describe("buildVocalFeedback", () => {
       ...baseInput,
     });
     expect(msg).toBe("");
+  });
+
+  test("silent during squat and at descent", () => {
+    expect(
+      buildVocalFeedback({
+        tracker: minimalTracker({
+          calibrated: true,
+          calibrationRequested: true,
+          isSquatting: true,
+        }),
+        ...baseInput,
+      }),
+    ).toBe("");
+    expect(
+      buildVocalFeedback({
+        tracker: minimalTracker({
+          calibrated: true,
+          calibrationRequested: true,
+          standingBaseline: 170,
+          hipKneeAngle: 155,
+        }),
+        ...baseInput,
+      }),
+    ).toBe("");
+  });
+
+  test("speaks form correction after rep, not praise", () => {
+    const bad = buildVocalFeedback({
+      tracker: minimalTracker({
+        calibrated: true,
+        calibrationRequested: true,
+        repCount: 1,
+      }),
+      result: {
+        isCorrect: false,
+        confidence: 0.6,
+        incorrectProbability: 0.6,
+        kneeAngle: 90,
+        errors: {
+          knee_valgus: 0.7,
+          insufficient_depth: 0.1,
+          forward_lean: 0.1,
+        },
+        feedback: FEEDBACK.kneeValgus,
+        repNumber: 1,
+        phase: SquatPhase.Standing,
+      },
+      ...baseInput,
+    });
+    const good = buildVocalFeedback({
+      tracker: minimalTracker({
+        calibrated: true,
+        calibrationRequested: true,
+        repCount: 1,
+      }),
+      result: {
+        isCorrect: true,
+        confidence: 0.9,
+        incorrectProbability: 0.1,
+        kneeAngle: 90,
+        errors: {
+          knee_valgus: 0,
+          insufficient_depth: 0,
+          forward_lean: 0,
+        },
+        feedback: FEEDBACK.goodForm,
+        repNumber: 1,
+        phase: SquatPhase.Standing,
+      },
+      ...baseInput,
+    });
+    expect(bad).toBe(FEEDBACK.kneeValgus);
+    expect(good).toBe("");
   });
 });
 
