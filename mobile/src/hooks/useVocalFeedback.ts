@@ -22,7 +22,12 @@ export function useVocalFeedback(feedback: string, enabled: boolean): void {
     }
 
     const normalized = normalizeForSpeech(feedback);
-    if (!normalized || normalized === lastSpokenRef.current) return;
+    if (!normalized) {
+      lastSpokenRef.current = "";
+      return;
+    }
+
+    if (normalized === lastSpokenRef.current) return;
 
     lastSpokenRef.current = normalized;
     speakFeedback(feedback);
